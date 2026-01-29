@@ -59,5 +59,5 @@
 | 3   | 23520131 | Nguyễn Võ Ngọc Bảo   | https://github.com/AdamNbz          | 23520131@gm.uit.edu.vn  |
 
 ## GIAO DIỆN
--   **Link:** [Figma](https://www.figma.com/design/incT5SSdbOWXhxuuGioBsx/Untitled?node-id=0-1&p=f&t=wQqMVH9YtCWGE9EN-0)
+-   **Link:** [Figma](https://www.figma.com/design/nj2vEsLnM0LlzEgOiVDNZ1/-NT118--ShopeeLite-UI-Design?node-id=0-1&t=WXwcgvlsl2rgeNJu-1)
 

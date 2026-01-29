@@ -17,10 +17,8 @@
 
 ## GIỚI THIỆU ĐỒ ÁN
 
--    **Đề tài:** Quản lí đề tài
--    **Repository:** 
--    **Behance:** 
--    **Trang giới thiệu nhóm:** 
+-    **Đề tài:** ShopeeLite - ứng dụng sàn TMĐT
+-    **Mô tả:** Một phiên bản clone của ứng dụng sàn TMĐT nổi tiếng **Shopee**, với các tính năng cơ bản được tích hợp AI trong xử lý tìm kiếm và Chatbot.
 
 ## CHỨC NĂNG CHÍNH
 

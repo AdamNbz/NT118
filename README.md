@@ -47,9 +47,10 @@
 
 ## CÔNG NGHỆ SỬ DỤNG
 
--    **Backend:** [ASP.NET](https://dotnet.microsoft.com/en-us/apps/aspnet), [Python](https://www.python.org/) 
+-    **Backend:** [ASP.NET Core Web API (EF Core)](https://dotnet.microsoft.com/en-us/apps/aspnet), [Swagger/OpenAPI](https://swagger.io/specification/)
+-    **AI Service:** [FastAPI](https://fastapi.tiangolo.com/) - AI Search (semantic) + AI Chatbot (RAG)
 -    **Frontend:** [React Native](https://reactnative.dev/), [Figma](https://www.figma.com/community), [Tailwind](https://tailwindcss.com/)
--    **Database:** [MongoDB](https://www.mongodb.com/?msockid=1378f47ead6662d522cce241ac8363bd)
+-    **Database:** [PostgreSQL](https://www.postgresql.org/)
 ## THÀNH VIÊN NHÓM
 
 | STT | MSSV     | Họ và Tên            | GitHub                              | Email                   |

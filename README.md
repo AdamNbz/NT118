@@ -52,8 +52,6 @@
 -    **Frontend:** [React Native](https://reactnative.dev/), [TailwindCSS](https://tailwindcss.com/), [Figma](https://www.figma.com/community)
 -    **Database:** [PostgreSQL](https://www.postgresql.org/)
 -    **Realtime:** [SignalR](https://dotnet.microsoft.com/en-us/apps/aspnet/signalr)
--    **Containerization:** [Docker](https://www.docker.com/)
--    **Cloud/Deployment:** [Microsoft Azure](https://azure.microsoft.com/en-us)
 
 ## THÀNH VIÊN NHÓM
 

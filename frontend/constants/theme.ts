@@ -5,17 +5,24 @@
 
 import { Platform } from 'react-native';
 
-const tintColorLight = '#0a7ea4';
+const tintColorLight = '#F73658';
 const tintColorDark = '#fff';
 
 export const Colors = {
   light: {
-    text: '#11181C',
-    background: '#fff',
+    text: '#000000',
+    background: '#FFFFFF',
     tint: tintColorLight,
-    icon: '#687076',
-    tabIconDefault: '#687076',
+    icon: '#A8A8A9',
+    tabIconDefault: '#A8A8A9',
     tabIconSelected: tintColorLight,
+    primary: '#F73658',
+    secondary: '#4392F9',
+    neutral: '#A8A8A9',
+    surface: '#FFFFFF',
+    error: '#FF6768',
+    success: '#4CAF50',
+    border: '#E0E0E0',
   },
   dark: {
     text: '#ECEDEE',
@@ -24,30 +31,25 @@ export const Colors = {
     icon: '#9BA1A6',
     tabIconDefault: '#9BA1A6',
     tabIconSelected: tintColorDark,
+    primary: '#F73658',
+    secondary: '#4392F9',
   },
 };
 
-export const Fonts = Platform.select({
-  ios: {
-    /** iOS `UIFontDescriptorSystemDesignDefault` */
-    sans: 'system-ui',
-    /** iOS `UIFontDescriptorSystemDesignSerif` */
-    serif: 'ui-serif',
-    /** iOS `UIFontDescriptorSystemDesignRounded` */
-    rounded: 'ui-rounded',
-    /** iOS `UIFontDescriptorSystemDesignMonospaced` */
-    mono: 'ui-monospace',
+export const Fonts = {
+  montserrat: {
+    regular: 'Montserrat_400Regular',
+    medium: 'Montserrat_500Medium',
+    semibold: 'Montserrat_600SemiBold',
+    bold: 'Montserrat_700Bold',
+    extrabold: 'Montserrat_800ExtraBold',
   },
-  default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+  poppins: {
+    regular: 'Poppins_400Regular',
+    medium: 'Poppins_500Medium',
+    bold: 'Poppins_700Bold',
   },
-  web: {
-    sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
-    serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
-    mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
+  libreCaslon: {
+    bold: 'LibreCaslonText_700Bold',
   },
-});
+};

@@ -1,5 +1,5 @@
-import HomePage from '@/components/screen/HomePage';
+import TrendProduct from '@/components/screen/TrendProduct';
 
 export default function WishlistScreen() {
-  return <HomePage />;
+  return <TrendProduct />;
 }

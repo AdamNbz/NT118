@@ -9,43 +9,65 @@ export interface Product {
   name: string;
   description: string;
   price: string;
-  originalPrice: string;
-  discount: string;
+  originalPrice?: string;
+  discount?: string;
   rating: number;
   reviews: string;
   image: any;
+  imageHeight?: number;
 }
 
 interface ProductCardProps {
   product: Product;
   onPress?: (product: Product) => void;
   isHorizontal?: boolean;
+  isMasonry?: boolean;
 }
 
-const ProductCard: React.FC<ProductCardProps> = ({ product, onPress, isHorizontal = false }) => {
+const ProductCard: React.FC<ProductCardProps> = ({ 
+  product, 
+  onPress, 
+  isHorizontal = false,
+  isMasonry = false 
+}) => {
+  const cardWidth = isHorizontal ? 170 : isMasonry ? (width - 40) / 2 : (width - 48) / 2;
+  
   return (
     <TouchableOpacity 
-      style={[styles.productCard, isHorizontal && styles.horizontalCard]} 
+      style={[
+        styles.productCard, 
+        isHorizontal && styles.horizontalCard,
+        isMasonry && { width: cardWidth, marginBottom: 12 }
+      ]} 
       onPress={() => onPress?.(product)}
       activeOpacity={0.9}
     >
-      <View style={styles.productImageContainer}>
-        <Image source={product.image} style={styles.productImage} />
+      <View style={[
+        styles.productImageContainer,
+        isMasonry && product.imageHeight ? { height: product.imageHeight } : {}
+      ]}>
+        <Image source={product.image} style={styles.productImage} resizeMode="cover" />
       </View>
       <View style={styles.productInfo}>
         <Text style={styles.productName} numberOfLines={1}>{product.name}</Text>
         <Text style={styles.productDesc} numberOfLines={2}>{product.description}</Text>
         <Text style={styles.productPrice}>{product.price}</Text>
-        <View style={styles.priceRow}>
-          <Text style={styles.originalPrice}>{product.originalPrice}</Text>
-          <Text style={styles.discountText}>{product.discount}</Text>
-        </View>
+        {product.originalPrice && (
+          <View style={styles.priceRow}>
+            <Text style={styles.originalPrice}>{product.originalPrice}</Text>
+            <Text style={styles.discountText}>{product.discount}</Text>
+          </View>
+        )}
         <View style={styles.ratingRow}>
           <View style={styles.stars}>
-            {[1, 2, 3, 4].map((i) => (
-              <Ionicons key={i} name="star" size={12} color="#EDB310" />
+            {[1, 2, 3, 4, 5].map((i) => (
+              <Ionicons 
+                key={i} 
+                name={i <= Math.floor(product.rating) ? "star" : i - 0.5 <= product.rating ? "star-half" : "star-outline"} 
+                size={12} 
+                color={i <= product.rating + 0.5 ? "#EDB310" : "#A8A8A9"} 
+              />
             ))}
-            {product.rating % 1 !== 0 && <Ionicons name="star-half" size={12} color="#EDB310" />}
           </View>
           <Text style={styles.reviewsText}>{product.reviews}</Text>
         </View>

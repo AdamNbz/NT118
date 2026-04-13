@@ -7,10 +7,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 {
     public DbSet<SampleItem> SampleItems => Set<SampleItem>();
     public DbSet<User> Users => Set<User>();
+    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
+    public DbSet<UserAddress> UserAddresses => Set<UserAddress>();
     public DbSet<Category> Categories => Set<Category>();
     public DbSet<Shop> Shops => Set<Shop>();
     public DbSet<Product> Products => Set<Product>();
     public DbSet<ProductImage> ProductImages => Set<ProductImage>();
+    public DbSet<ProductVariant> ProductVariants => Set<ProductVariant>();
+    public DbSet<ViewHistory> ViewHistories => Set<ViewHistory>();
+    public DbSet<CartItem> CartItems => Set<CartItem>();
+    public DbSet<Order> Orders => Set<Order>();
+    public DbSet<Review> Reviews => Set<Review>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -31,6 +38,250 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.PasswordResetCodeExpires).HasColumnName("password_reset_code_expires");
             e.HasIndex(x => x.Email).IsUnique();
             e.HasIndex(x => x.Username).IsUnique();
+
+            e.HasOne(x => x.Profile)
+                .WithOne(x => x.User)
+                .HasForeignKey<UserProfile>(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasMany(x => x.Addresses)
+                .WithOne(x => x.User)
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserProfile>(e =>
+        {
+            e.ToTable("user_profiles");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.FullName).HasColumnName("full_name").HasMaxLength(100);
+            e.Property(x => x.AvatarUrl).HasColumnName("avatar_url").HasMaxLength(500);
+            e.Property(x => x.DateOfBirth).HasColumnName("date_of_birth");
+            e.Property(x => x.Gender).HasColumnName("gender");
+            e.Property(x => x.Bio).HasColumnName("bio");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => x.UserId).IsUnique();
+        });
+
+        modelBuilder.Entity<UserAddress>(e =>
+        {
+            e.ToTable("user_addresses");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.RecipientName).HasColumnName("recipient_name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.RecipientPhone).HasColumnName("recipient_phone").HasMaxLength(20).IsRequired();
+            e.Property(x => x.Province).HasColumnName("province").HasMaxLength(50).IsRequired();
+            e.Property(x => x.District).HasColumnName("district").HasMaxLength(50).IsRequired();
+            e.Property(x => x.Ward).HasColumnName("ward").HasMaxLength(50).IsRequired();
+            e.Property(x => x.StreetAddress).HasColumnName("street_address").IsRequired();
+            e.Property(x => x.IsDefault).HasColumnName("is_default");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.HasIndex(x => x.UserId);
+            e.HasIndex(x => new { x.UserId, x.IsDefault })
+                .HasFilter("is_default = true")
+                .IsUnique();
+        });
+
+        modelBuilder.Entity<Category>(e =>
+        {
+            e.ToTable("categories");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Slug).HasColumnName("slug").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Description).HasColumnName("description");
+            e.Property(x => x.ParentId).HasColumnName("parent_id");
+            e.Property(x => x.ImageUrl).HasColumnName("image_url").HasMaxLength(500);
+            e.Property(x => x.SortOrder).HasColumnName("sort_order");
+            e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => x.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<Shop>(e =>
+        {
+            e.ToTable("shops");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Slug).HasColumnName("slug").HasMaxLength(100).IsRequired();
+            e.Property(x => x.LogoUrl).HasColumnName("logo_url").HasMaxLength(500);
+            e.Property(x => x.Rating).HasColumnName("rating");
+            e.Property(x => x.Status).HasColumnName("status");
+            e.HasIndex(x => x.Slug).IsUnique();
+        });
+
+        modelBuilder.Entity<Product>(e =>
+        {
+            e.ToTable("products");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.ShopId).HasColumnName("shop_id").IsRequired();
+            e.Property(x => x.CategoryId).HasColumnName("category_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").HasMaxLength(255).IsRequired();
+            e.Property(x => x.Slug).HasColumnName("slug").HasMaxLength(255).IsRequired();
+            e.Property(x => x.Description).HasColumnName("description");
+            e.Property(x => x.Price).HasColumnName("price");
+            e.Property(x => x.OriginalPrice).HasColumnName("original_price");
+            e.Property(x => x.StockQuantity).HasColumnName("stock_quantity");
+            e.Property(x => x.SoldQuantity).HasColumnName("sold_quantity");
+            e.Property(x => x.Rating).HasColumnName("rating");
+            e.Property(x => x.TotalReviews).HasColumnName("total_reviews");
+            e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => x.Slug).IsUnique();
+
+            e.HasOne(x => x.Category)
+                .WithMany(x => x.Products)
+                .HasForeignKey(x => x.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Shop)
+                .WithMany(x => x.Products)
+                .HasForeignKey(x => x.ShopId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProductImage>(e =>
+        {
+            e.ToTable("product_images");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.ProductId).HasColumnName("product_id").IsRequired();
+            e.Property(x => x.ImageUrl).HasColumnName("image_url").HasMaxLength(500).IsRequired();
+            e.Property(x => x.AltText).HasColumnName("alt_text").HasMaxLength(255);
+            e.Property(x => x.SortOrder).HasColumnName("sort_order");
+            e.Property(x => x.IsMain).HasColumnName("is_main");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+
+            e.HasOne(x => x.Product)
+                .WithMany(x => x.Images)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ProductVariant>(e =>
+        {
+            e.ToTable("product_variants");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.ProductId).HasColumnName("product_id").IsRequired();
+            e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Value).HasColumnName("value").HasMaxLength(100).IsRequired();
+            e.Property(x => x.PriceModifier).HasColumnName("price_modifier");
+            e.Property(x => x.StockQuantity).HasColumnName("stock_quantity");
+            e.Property(x => x.Sku).HasColumnName("sku").HasMaxLength(100);
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+
+            e.HasOne(x => x.Product)
+                .WithMany(x => x.Variants)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ViewHistory>(e =>
+        {
+            e.ToTable("view_history");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.ProductId).HasColumnName("product_id").IsRequired();
+            e.Property(x => x.ViewedAt).HasColumnName("viewed_at");
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Product)
+                .WithMany(x => x.ViewHistories)
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<CartItem>(e =>
+        {
+            e.ToTable("cart_items");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.UserId).HasColumnName("user_id").IsRequired();
+            e.Property(x => x.ProductId).HasColumnName("product_id").IsRequired();
+            e.Property(x => x.VariantId).HasColumnName("variant_id");
+            e.Property(x => x.Quantity).HasColumnName("quantity").IsRequired();
+            e.Property(x => x.AddedAt).HasColumnName("added_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+
+            e.HasOne(x => x.User)
+                .WithMany()
+                .HasForeignKey(x => x.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Variant)
+                .WithMany()
+                .HasForeignKey(x => x.VariantId)
+                .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<Order>(e =>
+        {
+            e.ToTable("orders");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.OrderNumber).HasColumnName("order_number").HasMaxLength(50).IsRequired();
+            e.Property(x => x.BuyerId).HasColumnName("buyer_id").IsRequired();
+            e.Property(x => x.ShopId).HasColumnName("shop_id").IsRequired();
+            e.Property(x => x.TotalAmount).HasColumnName("total_amount");
+            e.Property(x => x.PaymentStatus).HasColumnName("payment_status");
+            e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.OrderedAt).HasColumnName("ordered_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+            e.HasIndex(x => x.OrderNumber).IsUnique();
+
+            e.HasOne(x => x.Buyer)
+                .WithMany()
+                .HasForeignKey(x => x.BuyerId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Shop)
+                .WithMany()
+                .HasForeignKey(x => x.ShopId)
+                .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<Review>(e =>
+        {
+            e.ToTable("reviews");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.ProductId).HasColumnName("product_id").IsRequired();
+            e.Property(x => x.ReviewerId).HasColumnName("reviewer_id").IsRequired();
+            e.Property(x => x.Rating).HasColumnName("rating").IsRequired();
+            e.Property(x => x.Comment).HasColumnName("comment");
+            e.Property(x => x.IsVerified).HasColumnName("is_verified");
+            e.Property(x => x.HelpfulVotes).HasColumnName("helpful_votes");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
+
+            e.HasOne(x => x.Product)
+                .WithMany()
+                .HasForeignKey(x => x.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(x => x.Reviewer)
+                .WithMany()
+                .HasForeignKey(x => x.ReviewerId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<SampleItem>(e =>

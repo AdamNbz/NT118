@@ -1488,38 +1488,86 @@ CREATE TABLE category_attributes (
 - `POST /api/auth/register` - Đăng ký tài khoản
 - `POST /api/auth/login` - Đăng nhập
 - `POST /api/auth/logout` - Đăng xuất
+- `POST /api/auth/forgot-password` - Quên mật khẩu
+- `POST /api/auth/reset-password` - Đặt lại mật khẩu
 
 ## User Management
 - `GET /api/user/profile` - Lấy profile
 - `PUT /api/user/profile` - Cập nhật profile
+- `PUT /api/user/password` - Cập nhật mật khẩu
 - `GET /api/user/addresses` - Danh sách địa chỉ
 - `POST /api/user/addresses` - Thêm địa chỉ
 - `PUT /api/user/addresses/:id` - Sửa địa chỉ
 - `DELETE /api/user/addresses/:id` - Xóa địa chỉ
+- `GET /api/orders` - Danh sách đơn hàng theo người dùng
+- `GET /api/cart` - Giỏ hàng của người dùng
+
+## Home
+- `GET /api/home/banners` - Danh sách banner
+- `GET /api/home/popup-ads` - Thông tin popup ads
+- `GET /api/home/flash-sale` - Danh sách sản phẩm flash sale
+- `GET /api/home/recommended-products` - Danh sách sản phẩm khuyến nghị
 
 ## Products
 - `GET /api/products` - Danh sách sản phẩm
 - `GET /api/products/:id` - Chi tiết sản phẩm
+- `GET /api/products/history` - Lịch sử xem sản phẩm
+- `POST /api/products/:id/view` - Ghi nhận đã xem sản phẩm
 - `GET /api/categories` - Danh mục
-- `GET /api/search` - Tìm kiếm
+- `GET /api/search` - Tìm kiếm sản phẩm
+- `GET /api/products/:id/reviews` - Danh sách đánh giá theo sản phẩm
 
-## Shopping
+## Reviews
+- `POST /api/products/:id/reviews` - Thêm đánh giá
+- `DELETE /api/reviews/:id` - Xóa đánh giá
+
+## Favorites
+- `GET /api/favorites` - Danh sách yêu thích
+- `POST /api/products/:id/favorite` - Yêu thích
+- `DELETE /api/products/:id/favorite` - Bỏ yêu thích
+
+## Brands & Categories
+- `POST /api/categories` - Thêm loại hàng
+- `PUT /api/categories/:id` - Sửa loại hàng
+- `DELETE /api/categories/:id` - Xóa loại hàng
+- `GET /api/brands` - Lấy thông tin nhãn hàng
+- `GET /api/brands/:id/products` - Danh sách sản phẩm theo nhãn hàng
+
+## Shopping & Orders
 - `GET /api/cart` - Giỏ hàng
 - `POST /api/cart` - Thêm vào giỏ
 - `PUT /api/cart/:id` - Cập nhật số lượng
 - `DELETE /api/cart/:id` - Xóa khỏi giỏ
 - `POST /api/orders` - Đặt hàng
 - `GET /api/orders` - Lịch sử đơn hàng
+- `GET /api/orders/:id` - Chi tiết đơn hàng
+- `PATCH /api/orders/:id/status` - Cập nhật trạng thái đơn hàng
 
-## Reviews & Favorites
-- `POST /api/products/:id/reviews` - Viết review
-- `POST /api/products/:id/favorite` - Yêu thích
-- `DELETE /api/products/:id/favorite` - Bỏ yêu thích
+## Vouchers
+- `GET /api/vouchers` - Danh sách voucher
+- `POST /api/vouchers` - Tạo voucher
+- `PUT /api/vouchers/:id` - Cập nhật voucher
+- `DELETE /api/vouchers/:id` - Xóa voucher
+- `POST /api/vouchers/:id/claim` - Lưu voucher vào tài khoản
+
+## Payments
+- `POST /api/payments` - Thanh toán đơn hàng
+- `POST /api/payments/apply-voucher` - Áp mã giảm giá
+- `POST /api/payments/vnpay/create` - Tạo giao dịch VNPay
+- `GET /api/payments/vnpay/callback` - Callback VNPay
+
+## Shops
+- `POST /api/shops/register` - Đăng ký cửa hàng
+- `POST /api/shops/:id/follow` - Follow cửa hàng
+- `DELETE /api/shops/:id/follow` - Unfollow cửa hàng
 
 ## Chat & Notifications
 - `GET /api/messages` - Tin nhắn
 - `POST /api/messages` - Gửi tin nhắn
 - `GET /api/notifications` - Thông báo
+
+## AI Search
+- `POST /api/ai/search-by-needs` - AI tìm kiếm sản phẩm theo nhu cầu
 
 ## Seller APIs
 - `POST /api/seller/register` - Đăng ký bán hàng

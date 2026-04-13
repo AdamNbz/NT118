@@ -2,8 +2,10 @@ using Backend.Data;
 using Backend.Models;
 using Backend.Options;
 using Backend.Services;
-using Backend.Configuration;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
+using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 DotEnvLoader.Load(Path.Combine(builder.Environment.ContentRootPath, ".env"));
@@ -31,13 +33,44 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     {
         npgsql.MapEnum<UserRole>("user_role");
         npgsql.MapEnum<UserStatus>("user_status");
+        npgsql.MapEnum<GenderType>("gender_type");
+        npgsql.MapEnum<ShopStatus>("shop_status");
+        npgsql.MapEnum<ProductStatus>("product_status");
+        npgsql.MapEnum<CategoryStatus>("category_status");
+        npgsql.MapEnum<OrderStatus>("order_status");
+        npgsql.MapEnum<PaymentStatus>("payment_status");
         npgsql.EnableRetryOnFailure();
     }));
 
+var jwtOptions = builder.Configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
+    ?? throw new InvalidOperationException("Jwt options are not configured.");
+
+if (string.IsNullOrWhiteSpace(jwtOptions.Key) || jwtOptions.Key.Length < 32)
+    throw new InvalidOperationException("Jwt:Key must be at least 32 characters.");
+
+builder.Services
+    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidIssuer = jwtOptions.Issuer,
+            ValidateAudience = true,
+            ValidAudience = jwtOptions.Audience,
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.Key)),
+            ValidateLifetime = true,
+            ClockSkew = TimeSpan.FromMinutes(1),
+        };
+    });
+
+builder.Services.AddAuthorization();
+
 builder.Services.AddScoped<ISampleService, SampleService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
-builder.Services.AddScoped<IEmailService, SmtpEmailService>();
-builder.Services.AddMemoryCache();
+builder.Services.AddScoped<IUserManagementService, UserManagementService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddCors(options =>
 {
@@ -60,13 +93,10 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // Create database if not exists
-    db.Database.EnsureCreated();
-
     // Create enums if they don't exist
     db.Database.ExecuteSqlRaw(@"
         DO $$ BEGIN
-            CREATE TYPE user_role AS ENUM ('customer', 'seller', 'admin');
+            CREATE TYPE user_role AS ENUM ('buyer', 'seller', 'admin');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
@@ -76,12 +106,58 @@ using (var scope = app.Services.CreateScope())
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE gender_type AS ENUM ('male', 'female', 'other');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE shop_status AS ENUM ('active', 'inactive', 'suspended');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE product_status AS ENUM ('active', 'inactive', 'out_of_stock');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE category_status AS ENUM ('active', 'inactive');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE order_status AS ENUM ('pending', 'confirmed', 'shipping', 'delivered', 'cancelled', 'refunded');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        ALTER TABLE users
+            ADD COLUMN IF NOT EXISTS password_reset_code VARCHAR(20),
+            ADD COLUMN IF NOT EXISTS password_reset_code_expires TIMESTAMP;
     ");
+
+    // Create database if not exists
+    db.Database.EnsureCreated();
 }
 
 app.UseCors();
 app.UseSwagger();
 app.UseSwaggerUI();
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 

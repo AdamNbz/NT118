@@ -1,6 +1,7 @@
 using Backend.Contracts;
 using Backend.Data;
 using Backend.Models;
+using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -10,7 +11,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/messages")]
-public class MessagesController(AppDbContext db) : ControllerBase
+public class MessagesController(AppDbContext db, INotificationRealtimeService realtimeNotifications) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<object>>> GetMessages([FromQuery] long? receiverId, CancellationToken cancellationToken)
@@ -75,7 +76,9 @@ public class MessagesController(AppDbContext db) : ControllerBase
         };
 
         db.Messages.Add(message);
-        db.Notifications.Add(new Notification
+        await db.SaveChangesAsync(cancellationToken);
+
+        var notification = new Notification
         {
             UserId = body.ReceiverId,
             Type = "message",
@@ -84,9 +87,22 @@ public class MessagesController(AppDbContext db) : ControllerBase
             Data = $"{{\"senderId\":{userId},\"messageId\":{message.Id}}}",
             IsRead = false,
             CreatedAt = DateTime.UtcNow,
-        });
+        };
 
+        db.Notifications.Add(notification);
         await db.SaveChangesAsync(cancellationToken);
+
+        await realtimeNotifications.NotifyUserAsync(body.ReceiverId, new
+        {
+            notification.Id,
+            notification.Type,
+            notification.Title,
+            message = notification.MessageText,
+            notification.Data,
+            notification.IsRead,
+            notification.CreatedAt,
+        }, cancellationToken);
+
         return Ok(new { message = "Gửi tin nhắn thành công.", messageId = message.Id });
     }
 }

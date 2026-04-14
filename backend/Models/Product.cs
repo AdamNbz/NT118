@@ -14,7 +14,7 @@ public class Product
     public int SoldQuantity { get; set; }
     public decimal Rating { get; set; }
     public int TotalReviews { get; set; }
-    public string Status { get; set; } = "active";
+    public ProductStatus Status { get; set; } = ProductStatus.active;
     public int? WeightGrams { get; set; }
     public string? Dimensions { get; set; }
     public string? Brand { get; set; }
@@ -22,5 +22,9 @@ public class Product
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 
     // Navigation
-    public List<ProductImage> Images { get; set; } = new();
+    public Category Category { get; set; } = null!;
+    public Shop Shop { get; set; } = null!;
+    public List<ProductImage> Images { get; set; } = [];
+    public List<ProductVariant> Variants { get; set; } = [];
+    public List<ViewHistory> ViewHistories { get; set; } = [];
 }

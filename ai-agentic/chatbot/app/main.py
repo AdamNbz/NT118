@@ -1,0 +1,96 @@
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from api import chat
+try:
+    from api import upload
+    upload_available = True
+except Exception as e:
+    print(f"Warning: Upload router not available: {e}")
+    upload_available = False
+import config.setting as config
+
+app = FastAPI(
+    title="ShopeeLite E-Commerce Chatbot API",
+    description="AI-powered e-commerce consultant and customer care chatbot",
+    version="2.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+
+app.include_router(chat.router)
+if upload_available:
+    app.include_router(upload.router)
+
+
+@app.get("/")
+async def root():
+    return {
+        "message": "ShopeeLite E-Commerce Chatbot API",
+        "model_type": config.MODEL_TYPE,
+        "version": "2.0.0"
+    }
+
+
+@app.get("/health")
+async def health():
+    try:
+        from llm.client import get_llm_client
+        try:
+            client = get_llm_client()
+            return {
+                "status": "healthy",
+                "model_type": config.MODEL_TYPE,
+                "llm_configured": True
+            }
+        except (ValueError, ImportError) as e:
+            return {
+                "status": "healthy",
+                "model_type": config.MODEL_TYPE,
+                "llm_configured": False,
+                "error": str(e)
+            }
+    except Exception as e:
+        return {
+            "status": "healthy",
+            "error": str(e)
+        }
+
+
+@app.on_event("startup")
+async def startup_event():
+    try:
+        from ingestion.ingest import DocumentIngester
+        from vectorstore.create import get_vector_store
+        import os
+
+        knowledge_file = os.path.join(
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            "data", "raw", "ecommerce_knowledge.md"
+        )
+
+        vector_store = get_vector_store()
+        if vector_store is None and os.path.exists(knowledge_file):
+            print("Initializing knowledge base from ecommerce_knowledge.md...")
+            ingester = DocumentIngester()
+            result = ingester.ingest_file(knowledge_file, {"source": "ShopeeLite Knowledge Base"})
+            print(f"Knowledge base initialized: {result['num_chunks']} chunks indexed")
+        else:
+            print("Knowledge base already exists or file not found, skipping ingestion")
+    except Exception as e:
+        print(f"Warning: Auto-ingestion skipped: {e}")
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(
+        "app.main:app",
+        host=config.API_HOST,
+        port=config.API_PORT,
+        reload=True
+    )

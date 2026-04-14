@@ -14,6 +14,9 @@ builder.Configuration["Smtp:EnableSsl"] = Environment.GetEnvironmentVariable("SM
 builder.Configuration["Smtp:FromEmail"] = Environment.GetEnvironmentVariable("SMTP_FROM_EMAIL") ?? builder.Configuration["Smtp:FromEmail"];
 builder.Configuration["Smtp:FromName"] = Environment.GetEnvironmentVariable("SMTP_FROM_NAME") ?? builder.Configuration["Smtp:FromName"];
 builder.Configuration["Smtp:AppPassword"] = Environment.GetEnvironmentVariable("SMTP_APP_PASSWORD") ?? builder.Configuration["Smtp:AppPassword"];
+builder.Configuration["ConnectionStrings:DefaultConnection"] =
+    Environment.GetEnvironmentVariable("ConnectionStrings__DefaultConnection")
+    ?? builder.Configuration["ConnectionStrings:DefaultConnection"];
 
 builder.Services.Configure<JwtOptions>(builder.Configuration.GetSection(JwtOptions.SectionName));
 builder.Services.Configure<AppFeatureOptions>(builder.Configuration.GetSection(AppFeatureOptions.SectionName));

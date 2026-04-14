@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, ScrollView, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter } from 'expo-router';
 import Header from '../common/Header';
 import SearchBar from '../common/SearchBar';
 import Categories, { Category } from '../common/Categories';
@@ -69,10 +70,12 @@ const products: Product[] = [
 ];
 
 const HomePage = () => {
+  const router = useRouter();
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Header />
+        <Header onMessagePress={() => router.push('/chat')} />
         
         <SearchBar />
 

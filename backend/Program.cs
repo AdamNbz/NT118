@@ -1,8 +1,10 @@
 using Backend.Data;
+using Backend.Filters;
 using Backend.Models;
 using Backend.Options;
 using Backend.Services;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Text;
@@ -39,6 +41,8 @@ builder.Services.AddDbContext<AppDbContext>(options =>
         npgsql.MapEnum<CategoryStatus>("category_status");
         npgsql.MapEnum<OrderStatus>("order_status");
         npgsql.MapEnum<PaymentStatus>("payment_status");
+        npgsql.MapEnum<VoucherDiscountType>("voucher_discount_type");
+        npgsql.MapEnum<MessageType>("message_type");
         npgsql.EnableRetryOnFailure();
     }));
 
@@ -71,6 +75,8 @@ builder.Services.AddScoped<ISampleService, SampleService>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IUserManagementService, UserManagementService>();
 builder.Services.AddScoped<IProductService, ProductService>();
+builder.Services.AddScoped<ApiExceptionFilter>();
+builder.Services.AddScoped<ApiResponseWrapperFilter>();
 
 builder.Services.AddCors(options =>
 {
@@ -82,7 +88,25 @@ builder.Services.AddCors(options =>
     });
 });
 
-builder.Services.AddControllers();
+builder.Services.AddControllers(options =>
+{
+    options.Filters.AddService<ApiExceptionFilter>();
+    options.Filters.AddService<ApiResponseWrapperFilter>();
+});
+builder.Services.Configure<ApiBehaviorOptions>(options =>
+{
+    options.InvalidModelStateResponseFactory = context =>
+    {
+        var errors = context.ModelState
+            .Where(x => x.Value?.Errors.Count > 0)
+            .ToDictionary(
+                x => x.Key,
+                x => x.Value!.Errors.Select(e => string.IsNullOrWhiteSpace(e.ErrorMessage) ? "Invalid value" : e.ErrorMessage).ToArray());
+
+        var response = Backend.Contracts.ApiResponses.Validation(errors, context.HttpContext.TraceIdentifier);
+        return new BadRequestObjectResult(response);
+    };
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
@@ -139,6 +163,18 @@ using (var scope = app.Services.CreateScope())
 
         DO $$ BEGIN
             CREATE TYPE payment_status AS ENUM ('pending', 'paid', 'failed', 'refunded');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE voucher_discount_type AS ENUM ('percentage', 'fixed');
+        EXCEPTION
+            WHEN duplicate_object THEN null;
+        END $$;
+
+        DO $$ BEGIN
+            CREATE TYPE message_type AS ENUM ('text', 'image', 'file', 'product');
         EXCEPTION
             WHEN duplicate_object THEN null;
         END $$;

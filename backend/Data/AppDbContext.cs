@@ -17,7 +17,16 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ViewHistory> ViewHistories => Set<ViewHistory>();
     public DbSet<CartItem> CartItems => Set<CartItem>();
     public DbSet<Order> Orders => Set<Order>();
+    public DbSet<OrderItem> OrderItems => Set<OrderItem>();
+    public DbSet<Favorite> Favorites => Set<Favorite>();
+    public DbSet<Follow> Follows => Set<Follow>();
+    public DbSet<Voucher> Vouchers => Set<Voucher>();
+    public DbSet<UserVoucher> UserVouchers => Set<UserVoucher>();
+    public DbSet<Payment> Payments => Set<Payment>();
     public DbSet<Review> Reviews => Set<Review>();
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<AdminUser> AdminUsers => Set<AdminUser>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -108,11 +117,22 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.ToTable("shops");
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.OwnerId).HasColumnName("owner_id").IsRequired();
             e.Property(x => x.Name).HasColumnName("name").HasMaxLength(100).IsRequired();
             e.Property(x => x.Slug).HasColumnName("slug").HasMaxLength(100).IsRequired();
+            e.Property(x => x.Description).HasColumnName("description");
             e.Property(x => x.LogoUrl).HasColumnName("logo_url").HasMaxLength(500);
+            e.Property(x => x.CoverImageUrl).HasColumnName("cover_image_url").HasMaxLength(500);
+            e.Property(x => x.Address).HasColumnName("address");
+            e.Property(x => x.Phone).HasColumnName("phone").HasMaxLength(20);
+            e.Property(x => x.Email).HasColumnName("email").HasMaxLength(100);
             e.Property(x => x.Rating).HasColumnName("rating");
+            e.Property(x => x.TotalReviews).HasColumnName("total_reviews");
+            e.Property(x => x.TotalProducts).HasColumnName("total_products");
             e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.IsVerified).HasColumnName("is_verified");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+            e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             e.HasIndex(x => x.Slug).IsUnique();
         });
 
@@ -241,9 +261,17 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.Property(x => x.OrderNumber).HasColumnName("order_number").HasMaxLength(50).IsRequired();
             e.Property(x => x.BuyerId).HasColumnName("buyer_id").IsRequired();
             e.Property(x => x.ShopId).HasColumnName("shop_id").IsRequired();
+            e.Property(x => x.ShippingAddressId).HasColumnName("shipping_address_id").IsRequired();
+            e.Property(x => x.VoucherId).HasColumnName("voucher_id");
+            e.Property(x => x.ShopVoucherId).HasColumnName("shop_voucher_id");
+            e.Property(x => x.Subtotal).HasColumnName("subtotal");
+            e.Property(x => x.ShippingFee).HasColumnName("shipping_fee");
+            e.Property(x => x.DiscountAmount).HasColumnName("discount_amount");
             e.Property(x => x.TotalAmount).HasColumnName("total_amount");
+            e.Property(x => x.PaymentMethod).HasColumnName("payment_method").HasMaxLength(50);
             e.Property(x => x.PaymentStatus).HasColumnName("payment_status");
             e.Property(x => x.Status).HasColumnName("status");
+            e.Property(x => x.Notes).HasColumnName("notes");
             e.Property(x => x.OrderedAt).HasColumnName("ordered_at");
             e.Property(x => x.UpdatedAt).HasColumnName("updated_at");
             e.HasIndex(x => x.OrderNumber).IsUnique();
@@ -264,6 +292,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.ToTable("reviews");
             e.HasKey(x => x.Id);
             e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.OrderId).HasColumnName("order_id").IsRequired();
             e.Property(x => x.ProductId).HasColumnName("product_id").IsRequired();
             e.Property(x => x.ReviewerId).HasColumnName("reviewer_id").IsRequired();
             e.Property(x => x.Rating).HasColumnName("rating").IsRequired();

@@ -1,4 +1,5 @@
 using Backend.Models;
+using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Contracts;
 
@@ -16,10 +17,10 @@ public record UserProfileResponse(
     DateTime UpdatedAt);
 
 public record UpdateUserProfileRequest(
-    string Email,
-    string? Phone,
-    string? FullName,
-    string? AvatarUrl,
+    [property: Required, EmailAddress, MaxLength(100)] string Email,
+    [property: MaxLength(20)] string? Phone,
+    [property: MaxLength(100)] string? FullName,
+    [property: MaxLength(500)] string? AvatarUrl,
     DateOnly? DateOfBirth,
     GenderType? Gender,
     string? Bio);
@@ -36,15 +37,17 @@ public record UserAddressResponse(
     DateTime CreatedAt);
 
 public record UpsertUserAddressRequest(
-    string RecipientName,
-    string RecipientPhone,
-    string Province,
-    string District,
-    string Ward,
-    string StreetAddress,
+    [property: Required, MaxLength(100)] string RecipientName,
+    [property: Required, MaxLength(20)] string RecipientPhone,
+    [property: Required, MaxLength(50)] string Province,
+    [property: Required, MaxLength(50)] string District,
+    [property: Required, MaxLength(50)] string Ward,
+    [property: Required, MaxLength(500)] string StreetAddress,
     bool IsDefault);
 
-public record ChangePasswordRequest(string CurrentPassword, string NewPassword);
+public record ChangePasswordRequest(
+    [property: Required, MinLength(6), MaxLength(128)] string CurrentPassword,
+    [property: Required, MinLength(6), MaxLength(128)] string NewPassword);
 
 public record UserOrderItemResponse(
     long Id,

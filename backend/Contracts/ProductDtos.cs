@@ -1,13 +1,15 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Backend.Contracts;
 
 public record ProductQuery(
-    string? Keyword,
+    [property: MaxLength(255)] string? Keyword,
     long? CategoryId,
     decimal? MinPrice,
     decimal? MaxPrice,
-    string? Sort,
-    int Page = 1,
-    int PageSize = 20);
+    [property: RegularExpression("^(price_asc|price_desc|rating|sold)?$")] string? Sort,
+    [property: Range(1, 100000)] int Page = 1,
+    [property: Range(1, 100)] int PageSize = 20);
 
 public record ProductListItemResponse(
     long Id,

@@ -3,6 +3,7 @@ namespace Backend.Models;
 public class Review
 {
     public long Id { get; set; }
+    public long OrderId { get; set; }
     public long ProductId { get; set; }
     public long ReviewerId { get; set; }
     public int Rating { get; set; }

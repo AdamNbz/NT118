@@ -1,12 +1,21 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace Backend.Contracts;
 
-public record RegisterRequest(string Email, string Password, string CaptchaCode);
+public record RegisterRequest(
+	[property: Required, EmailAddress, MaxLength(100)] string Email,
+	[property: Required, MinLength(6), MaxLength(128)] string Password);
 
-public record LoginRequest(string Email, string Password);
+public record LoginRequest(
+	[property: Required, EmailAddress, MaxLength(100)] string Email,
+	[property: Required, MinLength(6), MaxLength(128)] string Password);
 
-public record ForgotPasswordRequest(string Email);
+public record ForgotPasswordRequest([property: Required, EmailAddress, MaxLength(100)] string Email);
 
-public record ResetPasswordRequest(string Email, string Code, string NewPassword);
+public record ResetPasswordRequest(
+	[property: Required, EmailAddress, MaxLength(100)] string Email,
+	[property: Required, MinLength(4), MaxLength(20)] string Code,
+	[property: Required, MinLength(6), MaxLength(128)] string NewPassword);
 
 public record AuthResponse(string Token, long UserId, string Email);
 

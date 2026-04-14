@@ -1,70 +1,115 @@
-import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import { getFavoriteCount } from '../../lib/wishlistApi';
+
+const { width } = Dimensions.get('window');
 
 interface WishlistBannerProps {
-  title: string;
   onPress?: () => void;
 }
 
-const WishlistBanner: React.FC<WishlistBannerProps> = ({ title, onPress }) => {
+const WishlistBanner: React.FC<WishlistBannerProps> = ({ onPress }) => {
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    loadCount();
+  }, []);
+
+  const loadCount = async () => {
+    try {
+      const c = await getFavoriteCount();
+      setCount(c);
+    } catch {
+      // not logged in
+    }
+  };
+
   return (
-    <View style={styles.container}>
-      <View style={styles.textContainer}>
-        <Text style={styles.title}>{title}</Text>
-        <View style={styles.infoRow}>
-          <Feather name="calendar" size={16} color="white" />
+    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.9}>
+      <View style={styles.gradient}>
+        <View style={styles.iconContainer}>
+          <Ionicons name="heart" size={28} color="#FFF" />
+          {count > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{count > 99 ? '99+' : count}</Text>
+            </View>
+          )}
         </View>
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Danh sách yêu thích</Text>
+          <Text style={styles.subtitle}>
+            {count > 0
+              ? `${count} sản phẩm đã lưu`
+              : 'Chưa có sản phẩm yêu thích'}
+          </Text>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color="rgba(255,255,255,0.8)" />
       </View>
-      <TouchableOpacity style={styles.button} onPress={onPress}>
-        <Text style={styles.buttonText}>Xem Ngay</Text>
-        <Feather name="arrow-right" size={16} color="white" />
-      </TouchableOpacity>
-    </View>
+    </TouchableOpacity>
   );
 };
 
 const styles = StyleSheet.create({
   container: {
-    height: 56,
-    backgroundColor: '#F39393',
     marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 8,
+    marginVertical: 12,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#F83758',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
+  },
+  gradient: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 16,
-    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 18,
+    backgroundColor: '#F83758',
+    borderRadius: 16,
+  },
+  iconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+    position: 'relative',
+  },
+  badge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    backgroundColor: '#FFF',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+  },
+  badgeText: {
+    color: '#F83758',
+    fontSize: 10,
+    fontWeight: '700',
   },
   textContainer: {
     flex: 1,
   },
   title: {
-    color: 'white',
+    color: '#FFFFFF',
     fontSize: 16,
-    fontWeight: '500',
-    fontFamily: 'Montserrat_500Medium',
+    fontWeight: '700',
+    marginBottom: 2,
   },
-  infoRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-  },
-  button: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'white',
-    borderRadius: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    gap: 4,
-  },
-  buttonText: {
-    color: 'white',
+  subtitle: {
+    color: 'rgba(255,255,255,0.85)',
     fontSize: 12,
-    fontWeight: '600',
-    fontFamily: 'Montserrat_600SemiBold',
+    fontWeight: '400',
   },
 });
 

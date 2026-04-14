@@ -1,0 +1,228 @@
+using Backend.Contracts;
+using Backend.Data;
+using Backend.Models;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+
+namespace Backend.Controllers;
+
+[ApiController]
+[Authorize]
+[Route("api/orders")]
+public class OrdersController(AppDbContext db) : ControllerBase
+{
+    [HttpGet]
+    public async Task<ActionResult<IReadOnlyList<object>>> GetMyOrders(CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var orders = await db.Orders
+            .AsNoTracking()
+            .Where(x => x.BuyerId == userId)
+            .OrderByDescending(x => x.OrderedAt)
+            .Select(x => new
+            {
+                x.Id,
+                x.OrderNumber,
+                x.ShopId,
+                x.TotalAmount,
+                x.PaymentStatus,
+                x.Status,
+                x.OrderedAt,
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(orders);
+    }
+
+    [HttpGet("{id:long}")]
+    public async Task<IActionResult> GetOrderDetail(long id, CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var order = await db.Orders
+            .AsNoTracking()
+            .Where(x => x.Id == id && x.BuyerId == userId)
+            .Select(x => new
+            {
+                x.Id,
+                x.OrderNumber,
+                x.ShopId,
+                x.ShippingAddressId,
+                x.Subtotal,
+                x.ShippingFee,
+                x.DiscountAmount,
+                x.TotalAmount,
+                x.PaymentMethod,
+                x.PaymentStatus,
+                x.Status,
+                x.Notes,
+                x.OrderedAt,
+            })
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (order is null)
+            return NotFound();
+
+        var items = await db.OrderItems
+            .AsNoTracking()
+            .Where(x => x.OrderId == id)
+            .Select(x => new
+            {
+                x.Id,
+                x.ProductId,
+                x.VariantId,
+                x.ProductName,
+                x.ProductImage,
+                x.Quantity,
+                x.UnitPrice,
+                x.TotalPrice,
+            })
+            .ToListAsync(cancellationToken);
+
+        return Ok(new { order, items });
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> CreateOrder([FromBody] CreateOrderRequest body, CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        if (body.Items.Count == 0)
+            return BadRequest(new { message = "Đơn hàng phải có ít nhất 1 sản phẩm." });
+
+        var address = await db.UserAddresses.FirstOrDefaultAsync(
+            x => x.Id == body.ShippingAddressId && x.UserId == userId,
+            cancellationToken);
+        if (address is null)
+            return BadRequest(new { message = "Địa chỉ giao hàng không hợp lệ." });
+
+        var productIds = body.Items.Select(x => x.ProductId).Distinct().ToList();
+        var products = await db.Products
+            .Where(x => productIds.Contains(x.Id) && x.Status == ProductStatus.active)
+            .ToListAsync(cancellationToken);
+
+        if (products.Count != productIds.Count)
+            return BadRequest(new { message = "Một số sản phẩm không hợp lệ hoặc ngừng bán." });
+
+        var shopIds = products.Select(x => x.ShopId).Distinct().ToList();
+        if (shopIds.Count != 1)
+            return BadRequest(new { message = "Mỗi đơn hàng chỉ hỗ trợ một shop." });
+
+        var subtotal = 0m;
+        var orderItems = new List<OrderItem>();
+        foreach (var input in body.Items)
+        {
+            if (input.Quantity <= 0)
+                return BadRequest(new { message = "Số lượng sản phẩm phải lớn hơn 0." });
+
+            var product = products.First(x => x.Id == input.ProductId);
+            var unitPrice = product.Price;
+            var itemTotal = unitPrice * input.Quantity;
+            subtotal += itemTotal;
+
+            var mainImage = await db.ProductImages
+                .Where(x => x.ProductId == product.Id)
+                .OrderByDescending(x => x.IsMain)
+                .ThenBy(x => x.SortOrder)
+                .Select(x => x.ImageUrl)
+                .FirstOrDefaultAsync(cancellationToken);
+
+            orderItems.Add(new OrderItem
+            {
+                ProductId = product.Id,
+                VariantId = input.VariantId,
+                ProductName = product.Name,
+                ProductImage = mainImage,
+                Quantity = input.Quantity,
+                UnitPrice = unitPrice,
+                TotalPrice = itemTotal,
+            });
+        }
+
+        var shippingFee = subtotal >= 300000 ? 0 : 25000;
+        var discount = 0m;
+        long? voucherId = null;
+
+        if (!string.IsNullOrWhiteSpace(body.VoucherCode))
+        {
+            var voucher = await db.Vouchers.FirstOrDefaultAsync(
+                x => x.Code == body.VoucherCode && x.IsActive,
+                cancellationToken);
+
+            if (voucher is not null && voucher.StartDate <= DateTime.UtcNow && voucher.EndDate >= DateTime.UtcNow)
+            {
+                if (!voucher.MinOrderValue.HasValue || subtotal >= voucher.MinOrderValue.Value)
+                {
+                    discount = voucher.DiscountType == VoucherDiscountType.@fixed
+                        ? voucher.DiscountValue
+                        : subtotal * (voucher.DiscountValue / 100m);
+
+                    if (voucher.MaxDiscount.HasValue)
+                        discount = Math.Min(discount, voucher.MaxDiscount.Value);
+
+                    discount = Math.Min(discount, subtotal);
+                    voucherId = voucher.Id;
+                }
+            }
+        }
+
+        var now = DateTime.UtcNow;
+        var order = new Order
+        {
+            OrderNumber = $"ORD-{DateTimeOffset.UtcNow.ToUnixTimeMilliseconds()}",
+            BuyerId = userId,
+            ShopId = shopIds[0],
+            ShippingAddressId = body.ShippingAddressId,
+            VoucherId = voucherId,
+            ShopVoucherId = null,
+            Subtotal = subtotal,
+            ShippingFee = shippingFee,
+            DiscountAmount = discount,
+            TotalAmount = subtotal + shippingFee - discount,
+            PaymentMethod = body.PaymentMethod,
+            PaymentStatus = PaymentStatus.pending,
+            Status = OrderStatus.pending,
+            Notes = body.Notes,
+            OrderedAt = now,
+            UpdatedAt = now,
+        };
+
+        db.Orders.Add(order);
+        await db.SaveChangesAsync(cancellationToken);
+
+        foreach (var item in orderItems)
+            item.OrderId = order.Id;
+
+        db.OrderItems.AddRange(orderItems);
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { message = "Đặt hàng thành công.", order.Id, order.OrderNumber, order.TotalAmount });
+    }
+
+    [HttpPatch("{id:long}/status")]
+    public async Task<IActionResult> UpdateOrderStatus(long id, [FromBody] UpdateOrderStatusRequest body, CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var order = await db.Orders.FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
+        if (order is null)
+            return NotFound();
+
+        var isSellerOfOrder = await db.Shops.AnyAsync(x => x.Id == order.ShopId && x.OwnerId == userId, cancellationToken);
+        var isBuyer = order.BuyerId == userId;
+        if (!isSellerOfOrder && !isBuyer && !this.IsAdmin())
+            return Forbid();
+
+        order.Status = body.Status;
+        order.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { message = "Cập nhật trạng thái đơn hàng thành công." });
+    }
+}

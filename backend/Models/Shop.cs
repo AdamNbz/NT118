@@ -15,8 +15,10 @@ public class Shop
     public decimal Rating { get; set; }
     public int TotalReviews { get; set; }
     public int TotalProducts { get; set; }
-    public string Status { get; set; } = "active";
+    public ShopStatus Status { get; set; } = ShopStatus.active;
     public bool IsVerified { get; set; }
-    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-    public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    public List<Product> Products { get; set; } = [];
 }

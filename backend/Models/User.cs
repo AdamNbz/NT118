@@ -13,4 +13,7 @@ public class User
     public DateTime UpdatedAt { get; set; }
     public string? PasswordResetCode { get; set; }
     public DateTime? PasswordResetCodeExpires { get; set; }
+
+    public UserProfile? Profile { get; set; }
+    public List<UserAddress> Addresses { get; set; } = [];
 }

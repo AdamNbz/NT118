@@ -95,8 +95,7 @@ const HomePage = () => {
   };
 
   const handleProductPress = (product: Product) => {
-    // Navigate to product details (can be wired up later)
-    console.log('Product pressed:', product.id);
+    router.push(`/product/${product.id}` as any);
   };
 
   return (
@@ -149,7 +148,6 @@ const HomePage = () => {
         />
 
         <WishlistBanner 
-          title="Danh sách yêu thích"
           onPress={() => {}}
         />
 

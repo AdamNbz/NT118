@@ -1,5 +1,5 @@
-import TrendProduct from '@/components/screen/TrendProduct';
+import WishlistScreen from '@/components/screen/WishlistScreen';
 
-export default function WishlistScreen() {
-  return <TrendProduct />;
+export default function WishlistRoute() {
+  return <WishlistScreen />;
 }

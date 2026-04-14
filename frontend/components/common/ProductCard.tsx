@@ -22,13 +22,17 @@ interface ProductCardProps {
   onPress?: (product: Product) => void;
   isHorizontal?: boolean;
   isMasonry?: boolean;
+  isFavorited?: boolean;
+  onToggleFavorite?: (product: Product) => void;
 }
 
 const ProductCard: React.FC<ProductCardProps> = ({
   product,
   onPress,
   isHorizontal = false,
-  isMasonry = false
+  isMasonry = false,
+  isFavorited,
+  onToggleFavorite,
 }) => {
   const cardWidth = isHorizontal ? 170 : isMasonry ? (width - 40) / 2 : (width - 48) / 2;
 
@@ -51,6 +55,19 @@ const ProductCard: React.FC<ProductCardProps> = ({
           <View style={styles.discountBadge}>
             <Text style={styles.discountBadgeText}>{product.discount}</Text>
           </View>
+        )}
+        {onToggleFavorite && (
+          <TouchableOpacity
+            style={styles.heartButton}
+            onPress={(e) => { e.stopPropagation?.(); onToggleFavorite(product); }}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+          >
+            <Ionicons
+              name={isFavorited ? 'heart' : 'heart-outline'}
+              size={18}
+              color={isFavorited ? '#F83758' : '#999'}
+            />
+          </TouchableOpacity>
         )}
       </View>
       <View style={styles.productInfo}>
@@ -120,6 +137,17 @@ const styles = StyleSheet.create({
     color: '#FFFFFF',
     fontSize: 9,
     fontWeight: '600',
+  },
+  heartButton: {
+    position: 'absolute',
+    top: 6,
+    left: 6,
+    backgroundColor: 'rgba(255,255,255,0.9)',
+    borderRadius: 14,
+    width: 28,
+    height: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   productInfo: {
     padding: 8,

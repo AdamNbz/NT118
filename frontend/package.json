@@ -3,7 +3,7 @@
   "main": "expo-router/entry",
   "version": "1.0.0",
   "scripts": {
-    "start": "concurrently --raw -n \"expo,backend\" -c \"blue,green\" \"expo start --clear --lan\" \"npm run dev:backend\"",
+    "start": "concurrently --raw -n \"expo,backend,chatbot\" -c \"blue,green,magenta\" \"expo start --clear --lan\" \"npm run dev:backend\" \"npm run dev:chatbot\"",
     "start:clear": "expo start --clear",
     "start:lan": "expo start --clear --lan",
     "reset-project": "node ./scripts/reset-project.js",
@@ -12,7 +12,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "adb:connect": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/adb-connect-ldplayer.ps1",
-    "dev:backend": "cd ../backend && dotnet run",
+    "dev:backend": "powershell -NoProfile -Command \"$conn = Get-NetTCPConnection -LocalPort 5058 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force; Start-Sleep -Milliseconds 300 }; Set-Location ../backend; dotnet run\"",
+    "dev:chatbot": "cd ../ai-agentic/chatbot && python -m app.main",
     "dev:db": "docker-compose -f ../docker/docker-compose.yaml up -d",
     "dev:db:stop": "docker-compose -f ../docker/docker-compose.yaml down"
   },

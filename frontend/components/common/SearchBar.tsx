@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, TextInput, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, TextInput, TouchableOpacity, StyleSheet, Text } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 interface SearchBarProps {
@@ -7,29 +7,55 @@ interface SearchBarProps {
   value?: string;
   onChangeText?: (text: string) => void;
   onVoicePress?: () => void;
+  onSubmitEditing?: () => void;
+  onPress?: () => void;
+  editable?: boolean;
+  autoFocus?: boolean;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
   placeholder = "Tên sản phẩm", 
   value, 
   onChangeText,
-  onVoicePress 
+  onVoicePress,
+  onSubmitEditing,
+  onPress,
+  editable = true,
+  autoFocus = false
 }) => {
-  return (
-    <View style={styles.searchContainer}>
-      <View style={styles.searchBar}>
+  const content = (
+    <View style={styles.searchBar}>
         <Ionicons name="search" size={20} color="#BBBBBB" />
-        <TextInput 
-          placeholder={placeholder}
-          placeholderTextColor="#BBBBBB"
-          style={styles.searchInput}
-          value={value}
-          onChangeText={onChangeText}
-        />
+        {onPress ? (
+          <Text style={[styles.searchInput, { paddingVertical: 10 }]}>{value || placeholder}</Text>
+        ) : (
+          <TextInput 
+            placeholder={placeholder}
+            placeholderTextColor="#BBBBBB"
+            style={styles.searchInput}
+            value={value}
+            onChangeText={onChangeText}
+            returnKeyType="search"
+            onSubmitEditing={onSubmitEditing}
+            editable={editable}
+            autoFocus={autoFocus}
+          />
+        )}
         <TouchableOpacity onPress={onVoicePress}>
           <MaterialCommunityIcons name="microphone-outline" size={24} color="#BBBBBB" />
         </TouchableOpacity>
       </View>
+  );
+
+  return (
+    <View style={styles.searchContainer}>
+      {onPress ? (
+        <TouchableOpacity activeOpacity={0.8} onPress={onPress}>
+          {content}
+        </TouchableOpacity>
+      ) : (
+        content
+      )}
     </View>
   );
 };

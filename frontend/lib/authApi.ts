@@ -3,7 +3,6 @@ import { saveAuthToken } from './authToken';
 
 export type AuthResponse = {
   token: string;
-  /** Backend trả về long; JSON an toàn trong number cho id thông thường */
   userId: number;
   email: string;
 };
@@ -17,7 +16,12 @@ export type MessageResponse = {
   message: string;
 };
 
+import axios from 'axios';
+
 function extractMessage(err: unknown): string {
+  if (axios.isAxiosError(err)) {
+    return err.response?.data?.message || err.response?.data?.title || err.message;
+  }
   if (err instanceof Error) return err.message;
   return 'Đã xảy ra lỗi';
 }
@@ -28,7 +32,13 @@ export async function loginRequest(email: string, password: string): Promise<Aut
       email: email.trim(),
       password,
     });
-    await saveAuthToken(data.token);
+    const tokenStr = data.token || (data as any).Token || (data as any).data?.token;
+    if (tokenStr && typeof tokenStr === 'string') {
+      await saveAuthToken(tokenStr);
+    } else {
+      console.warn("SecureStore warning: Caching whole object because token was undefined", data);
+      await saveAuthToken(JSON.stringify(data));
+    }
     return data;
   } catch (e) {
     throw new Error(extractMessage(e));
@@ -53,7 +63,12 @@ export async function registerRequest(email: string, password: string, captchaCo
       password,
       captchaCode: captchaCode.trim(),
     });
-    await saveAuthToken(data.token);
+    const tokenStr = data.token || (data as any).Token || (data as any).data?.token;
+    if (tokenStr && typeof tokenStr === 'string') {
+      await saveAuthToken(tokenStr);
+    } else {
+      await saveAuthToken(JSON.stringify(data));
+    }
     return data;
   } catch (e) {
     throw new Error(extractMessage(e));

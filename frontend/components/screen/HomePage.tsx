@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Dimensions, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Header from '../common/Header';
 import SearchBar from '../common/SearchBar';
+import SearchDetail from './SearchDetail';
 import Categories, { Category } from '../common/Categories';
 import Banner from '../common/Banner';
 import SectionHeader from '../common/SectionHeader';
@@ -72,7 +73,11 @@ const HomePage = () => {
   const router = useRouter();
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
+  const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isSearchVisible, setIsSearchVisible] = useState(false);
+
+  const { width } = Dimensions.get('window');
 
   useEffect(() => {
     loadProducts();
@@ -81,12 +86,14 @@ const HomePage = () => {
   const loadProducts = async () => {
     try {
       setLoading(true);
-      const [featured, newest] = await Promise.all([
+      const [featured, newest, suggested] = await Promise.all([
         getFeaturedProducts(8),
         getProducts({ page: 1, pageSize: 8, sort: 'newest' }),
+        getProducts({ page: 1, pageSize: 6, sort: 'popular' }),
       ]);
       setFeaturedProducts(featured.map(toCardProduct));
       setNewestProducts(newest.data.map(toCardProduct));
+      setSuggestedProducts(suggested.data.map(toCardProduct));
     } catch (err) {
       console.log('Failed to load products:', err);
     } finally {
@@ -98,12 +105,20 @@ const HomePage = () => {
     router.push(`/product/${product.id}` as any);
   };
 
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Header onMessagePress={() => router.push('/chat')} />
         
-        <SearchBar />
+        <TouchableOpacity onPress={() => setIsSearchVisible(true)} activeOpacity={0.9}>
+          <View pointerEvents="none">
+            <SearchBar 
+              placeholder="Bạn đang tìm gì..."
+              editable={false}
+            />
+          </View>
+        </TouchableOpacity>
 
         <Categories categories={categories} />
 
@@ -180,8 +195,35 @@ const HomePage = () => {
           onViewAllPress={() => {}}
         />
 
+        <SectionHeader 
+          title="Gợi ý cho bạn"
+          onViewAllPress={() => router.push('/search')}
+        />
+
+        {loading ? (
+          <ActivityIndicator size="large" color="#F83758" style={{ marginVertical: 20 }} />
+        ) : (
+          <View style={styles.masonryContainer}>
+            <View style={[styles.column, { width: (width - 40) / 2 }]}>
+              {suggestedProducts.filter((_, i) => i % 2 === 0).map((product) => (
+                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} />
+              ))}
+            </View>
+            <View style={[styles.column, { width: (width - 40) / 2 }]}>
+              {suggestedProducts.filter((_, i) => i % 2 !== 0).map((product) => (
+                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} />
+              ))}
+            </View>
+          </View>
+        )}
+
         <View style={{ height: 100 }} />
       </ScrollView>
+
+      <SearchDetail 
+        visible={isSearchVisible} 
+        onClose={() => setIsSearchVisible(false)} 
+      />
     </SafeAreaView>
   );
 };
@@ -197,6 +239,15 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     marginTop: 16,
     justifyContent: 'space-between',
+  },
+  masonryContainer: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    marginTop: 12,
+    justifyContent: 'space-between',
+  },
+  column: {
+    flexDirection: 'column',
   },
 });
 

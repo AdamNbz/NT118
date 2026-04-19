@@ -76,7 +76,6 @@ const HomePage = () => {
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
-
   const { width } = Dimensions.get('window');
 
   useEffect(() => {
@@ -110,10 +109,10 @@ const HomePage = () => {
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
         <Header onMessagePress={() => router.push('/chat')} />
-        
+
         <TouchableOpacity onPress={() => setIsSearchVisible(true)} activeOpacity={0.9}>
           <View pointerEvents="none">
-            <SearchBar 
+            <SearchBar
               placeholder="Bạn đang tìm gì..."
               editable={false}
             />
@@ -122,25 +121,25 @@ const HomePage = () => {
 
         <Categories categories={categories} />
 
-        <Banner 
-          title="50-40% OFF" 
-          subtitle="Now in (product)" 
+        <Banner
+          title="50-40% OFF"
+          subtitle="Now in (product)"
           detail="All colours"
         />
 
-        <SectionHeader 
-          title="Deal of the Day" 
-          timerText="22h 55m 20s remaining" 
+        <SectionHeader
+          title="Deal of the Day"
+          timerText="22h 55m 20s remaining"
           isBlueVariant={true}
-          onViewAllPress={() => {}}
+          onViewAllPress={() => { }}
         />
 
         {loading ? (
           <ActivityIndicator size="large" color="#F83758" style={{ marginVertical: 20 }} />
         ) : (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16, marginTop: 12 }}
           >
             {featuredProducts.map((product) => (
@@ -149,53 +148,52 @@ const HomePage = () => {
           </ScrollView>
         )}
 
-        <SpecialOffer 
+        <SpecialOffer
           title="Special Offers"
           description="We make sure you get the offer you need at best prices"
           emoji="😱"
         />
 
-        <PromotionBanner 
+        <PromotionBanner
           title="Tai nghe Chụp Tai"
           subtitle="Từ khoá gợi ý"
           buttonText="Tìm Ngay"
           image={require('../../assets/images/homepage/icons/unsplash_GCDjllzoKLo.svg')}
         />
 
-        <WishlistBanner 
-          onPress={() => {}}
+        <WishlistBanner
+          onPress={() => { }}
         />
 
         {loading ? (
           <ActivityIndicator size="large" color="#F83758" style={{ marginVertical: 20 }} />
         ) : (
-          <ScrollView 
-            horizontal 
-            showsHorizontalScrollIndicator={false} 
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 16, marginTop: 12 }}
           >
-            {newestProducts.map((product) => (
-              <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
+            {newestProducts.map((product) => (<ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
             ))}
           </ScrollView>
         )}
 
-        <NewArrivalsCard 
+        <NewArrivalsCard
           title="New Arrivals"
           subtitle="Summer' 25 Collections"
-          onViewAll={() => {}}
+          onViewAll={() => { }}
           image={require('../../assets/images/homepage/icons/unsplash_OYYE4g-I5ZQ.svg')}
         />
 
-        <SectionHeader 
+        <SectionHeader
           title="Quảng cáo"
           subtitle="up to 50% Off"
           backgroundColor="white"
           viewAllText=""
-          onViewAllPress={() => {}}
+          onViewAllPress={() => { }}
         />
 
-        <SectionHeader 
+        <SectionHeader
           title="Gợi ý cho bạn"
           onViewAllPress={() => router.push('/search')}
         />
@@ -220,9 +218,9 @@ const HomePage = () => {
         <View style={{ height: 100 }} />
       </ScrollView>
 
-      <SearchDetail 
-        visible={isSearchVisible} 
-        onClose={() => setIsSearchVisible(false)} 
+      <SearchDetail
+        visible={isSearchVisible}
+        onClose={() => setIsSearchVisible(false)}
       />
     </SafeAreaView>
   );
@@ -252,3 +250,5 @@ const styles = StyleSheet.create({
 });
 
 export default HomePage;
+
+

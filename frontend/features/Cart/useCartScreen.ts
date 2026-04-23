@@ -1,4 +1,5 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect, useCallback } from 'react';
+import { useRouter } from 'expo-router';
 import { CartSectionType } from './cart.types';
 import {
   getCartSummary,
@@ -6,40 +7,10 @@ import {
   toggleItemChecked,
   toggleShopChecked,
   updateItemQuantity,
+  mapBackendCartToSections,
 } from './cart.utils';
 import { Product } from '@/components/common/ProductCard';
-
-
-const initialSections: CartSectionType[] = [
-  {
-    shopId: 'shop-1',
-    shopName: 'ShopeeLite Mall',
-    checked: false,
-    voucherLabel: 'ShopeeLite Voucher',
-    voucherValue: 'Chọn hoặc nhập mã',
-    items: [
-      {
-        id: 'item-1',
-        name: 'Khẩu trang 4D kháng khuẩn',
-        image: 'https://picsum.photos/200',
-        variant: 'Phân loại: Màu Trắng',
-        price: 65000,
-        quantity: 1,
-        checked: true,
-      },
-      {
-        id: 'item-2',
-        name: 'Giày Chạy Bộ Nam',
-        image: 'https://picsum.photos/201',
-        variant: 'Phân loại: Đỏ, 42',
-        price: 890000,
-        originalPrice: 990000,
-        quantity: 1,
-        checked: false,
-      },
-    ],
-  },
-];
+import { getCartItems, updateCartItemQuantity, deleteCartItem } from '../../lib/cartApi';
 
 const recommendedProducts: Product[] = [
   {
@@ -67,7 +38,25 @@ const recommendedProducts: Product[] = [
 ];
 
 export default function useCartScreen() {
-  const [sections, setSections] = useState<CartSectionType[]>(initialSections);
+  const router = useRouter();
+  const [sections, setSections] = useState<CartSectionType[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const fetchCart = useCallback(async () => {
+    setIsLoading(true);
+    try {
+      const items = await getCartItems();
+      setSections(mapBackendCartToSections(items));
+    } catch (error) {
+      console.error('Failed to fetch cart:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchCart();
+  }, [fetchCart]);
 
   const summary = useMemo(() => getCartSummary(sections), [sections]);
 
@@ -79,12 +68,47 @@ export default function useCartScreen() {
     setSections(prev => toggleItemChecked(prev, shopId, itemId));
   };
 
+  const handleUpdateQuantity = async (shopId: string, itemId: string, newQty: number) => {
+    if (newQty < 1) {
+      // Handle delete
+      const success = await deleteCartItem(parseInt(itemId));
+      if (success) fetchCart();
+      return;
+    }
+
+    const res = await updateCartItemQuantity(parseInt(itemId), newQty);
+    if (res.success) {
+      setSections(prev => {
+        return prev.map(section => {
+          if (section.shopId !== shopId) return section;
+          return {
+            ...section,
+            items: section.items.map(item => {
+              if (item.id !== itemId) return item;
+              return { ...item, quantity: newQty };
+            })
+          };
+        });
+      });
+    }
+  };
+
   const handleIncreaseItem = (shopId: string, itemId: string) => {
-    setSections(prev => updateItemQuantity(prev, shopId, itemId, 'increase'));
+    const section = sections.find(s => s.shopId === shopId);
+    const item = section?.items.find(i => i.id === itemId);
+    if (item) {
+      handleUpdateQuantity(shopId, itemId, item.quantity + 1);
+    }
   };
 
   const handleDecreaseItem = (shopId: string, itemId: string) => {
-    setSections(prev => updateItemQuantity(prev, shopId, itemId, 'decrease'));
+    const section = sections.find(s => s.shopId === shopId);
+    const item = section?.items.find(i => i.id === itemId);
+    if (item && item.quantity > 1) {
+      handleUpdateQuantity(shopId, itemId, item.quantity - 1);
+    } else if (item && item.quantity === 1) {
+      handleUpdateQuantity(shopId, itemId, 0); // Trigger delete
+    }
   };
 
   const handleToggleAll = () => {
@@ -96,17 +120,40 @@ export default function useCartScreen() {
   };
 
   const handlePressProduct = (product: Product) => {
-    console.log('product press:', product.id);
+    router.push(`/product/${product.id}`);
+  };
+
+  const handlePressItem = (shopId: string, itemId: string) => {
+    const section = sections.find(s => s.shopId === shopId);
+    const item = section?.items.find(i => i.id === itemId);
+    if (item) {
+      router.push(`/product/${item.productId}`);
+    }
   };
 
   const handleCheckout = () => {
     console.log('checkout');
   };
 
+  const handleDeleteShop = async (shopId: string) => {
+    const section = sections.find(s => s.shopId === shopId);
+    if (!section) return;
+    
+    try {
+      // Xóa từng item trong shop (do API hiện tại chỉ hỗ trợ xóa từng cái)
+      await Promise.all(section.items.map(item => deleteCartItem(parseInt(item.id))));
+      fetchCart();
+    } catch (error) {
+      console.error('Failed to delete shop items:', error);
+    }
+  };
+
   return {
     sections,
     summary,
     recommendedProducts,
+    isLoading,
+    fetchCart,
     handleToggleShop,
     handleToggleItem,
     handleIncreaseItem,
@@ -114,6 +161,8 @@ export default function useCartScreen() {
     handleToggleAll,
     handlePressVoucher,
     handlePressProduct,
+    handlePressItem,
     handleCheckout,
+    handleDeleteShop,
   };
 }

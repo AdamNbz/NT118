@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   StyleSheet,
   Text,
@@ -6,19 +6,44 @@ import {
   FlatList,
   TouchableOpacity,
   ScrollView,
+  RefreshControl,
+  ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { TabModel } from './notification.types';
-import { MOCK_NOTIFICATIONS, TABS } from './notification.mock';
+import { TabModel, NotificationItemModel } from './notification.types';
+import { TABS } from './notification.mock';
 import NotificationCard from './NotificationCard';
+import { getNotifications } from '../../lib/notificationApi';
 
 export default function NotificationContent() {
   const [activeTab, setActiveTab] = useState<string>('ORDER');
+  const [notifications, setNotifications] = useState<NotificationItemModel[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const fetchNotifications = useCallback(async (showRefreshing = false) => {
+    if (showRefreshing) setIsRefreshing(true);
+    else setIsLoading(true);
+
+    try {
+      const data = await getNotifications();
+      setNotifications(data);
+    } catch (error) {
+      console.error('Failed to fetch notifications:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [fetchNotifications]);
 
   const filteredData = useMemo(() => {
-    return MOCK_NOTIFICATIONS.filter((item) => item.type === activeTab);
-  }, [activeTab]);
+    return notifications.filter((item) => item.type === activeTab);
+  }, [activeTab, notifications]);
 
   const recentNotifications = useMemo(() => filteredData.filter((i) => !i.isOlder), [filteredData]);
   const olderNotifications = useMemo(() => filteredData.filter((i) => i.isOlder), [filteredData]);
@@ -47,8 +72,25 @@ export default function NotificationContent() {
   );
 
   const renderContent = () => {
+    if (isLoading && !isRefreshing) {
+      return (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#FF4747" />
+        </View>
+      );
+    }
+
     if (filteredData.length === 0) {
-      return renderEmptyState();
+      return (
+        <FlatList
+          data={[]}
+          renderItem={null}
+          ListEmptyComponent={renderEmptyState()}
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchNotifications(true)} colors={['#FF4747']} />
+          }
+        />
+      );
     }
 
     const listData: any[] = [];
@@ -76,6 +118,9 @@ export default function NotificationContent() {
         }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchNotifications(true)} colors={['#FF4747']} />
+        }
       />
     );
   };
@@ -134,6 +179,11 @@ const styles = StyleSheet.create({
   },
   listWrapper: {
     flex: 1,
+  },
+  loadingContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   listContent: {
     paddingBottom: 24,

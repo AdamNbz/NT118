@@ -9,10 +9,10 @@ const BuyerAccountScreen: React.FC = () => {
   const router = useRouter();
 
   const orderActions = [
-    { key: 'confirm', icon: 'clipboard-check-outline', label: 'Chờ xác nhận', color: '#3b82f6', bg: '#eff6ff' },
-    { key: 'pickup', icon: 'cube-outline', label: 'Chờ lấy hàng', color: '#f59e0b', bg: '#fffbeb' },
-    { key: 'ship', icon: 'car-outline', label: 'Chờ giao hàng', color: '#10b981', bg: '#ecfdf5' },
-    { key: 'review', icon: 'star-outline', label: 'Đánh giá', color: '#ef476f', bg: '#fff1f2' },
+    { key: 'confirm', icon: 'clipboard-check-outline', label: 'Chờ xác nhận', color: '#3b82f6', bg: '#eff6ff', status: 'pending' },
+    { key: 'pickup', icon: 'cube-outline', label: 'Chờ lấy hàng', color: '#f59e0b', bg: '#fffbeb', status: 'confirmed' },
+    { key: 'ship', icon: 'car-outline', label: 'Chờ giao hàng', color: '#10b981', bg: '#ecfdf5', status: 'shipping' },
+    { key: 'review', icon: 'star-outline', label: 'Đánh giá', color: '#ef476f', bg: '#fff1f2', status: 'delivered' },
   ];
 
   const handleLogout = async () => {
@@ -44,13 +44,17 @@ const BuyerAccountScreen: React.FC = () => {
         <View style={styles.section}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>ĐƠN MUA</Text>
-            <TouchableOpacity>
+            <TouchableOpacity onPress={() => router.push('/orders' as any)}>
               <Text style={styles.sectionLink}>Xem lịch sử mua hàng</Text>
             </TouchableOpacity>
           </View>
           <View style={styles.gridRow}>
             {orderActions.map((item) => (
-              <TouchableOpacity key={item.key} style={styles.gridItem}>
+              <TouchableOpacity 
+                key={item.key} 
+                style={styles.gridItem}
+                onPress={() => router.push({ pathname: '/orders' as any, params: { status: item.status } })}
+              >
                 <View style={[styles.iconWrap, { backgroundColor: item.bg }]}>
                   <Ionicons name={item.icon as any} size={20} color={item.color} />
                 </View>
@@ -66,6 +70,22 @@ const BuyerAccountScreen: React.FC = () => {
             <View style={styles.menuLeft}>
               <Ionicons name="create-outline" size={20} color="#3b82f6" />
               <Text style={styles.menuText}>Chỉnh sửa thông tin</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/product-history' as any)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="time-outline" size={20} color="#6366f1" />
+              <Text style={styles.menuText}>Sản phẩm đã xem</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/register-shop' as any)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="storefront-outline" size={20} color="#10b981" />
+              <Text style={styles.menuText}>Đăng ký bán hàng</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
           </TouchableOpacity>

@@ -1,11 +1,11 @@
 import React from 'react';
 import {
-  Image,
   Pressable,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
+import { Image } from 'expo-image';
 import { formatPrice } from './cart.utils';
 
 type CartItemProps = {
@@ -48,7 +48,12 @@ export default function CartItem({
       </Pressable>
 
       <Pressable style={styles.card} onPress={onPress}>
-        <Image source={{ uri: image }} style={styles.image} />
+        <Image 
+          source={image} 
+          style={styles.image} 
+          contentFit="cover"
+          transition={200}
+        />
 
         <View style={styles.content}>
           <Text numberOfLines={2} style={[styles.name, disabled && styles.disabledText]}>
@@ -98,24 +103,24 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     backgroundColor: '#fff',
   },
   checkbox: {
-    width: BOX_SIZE,
-    height: BOX_SIZE,
-    borderRadius: 4,
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    marginRight: 10,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: '#E5E7EB',
+    marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
   checkboxChecked: {
-    borderColor: '#FF4D4F',
-    backgroundColor: '#FF4D4F',
+    borderColor: '#FF4747',
+    backgroundColor: '#FF4747',
   },
   checkboxInner: {
     width: 8,
@@ -126,13 +131,16 @@ const styles = StyleSheet.create({
   card: {
     flex: 1,
     flexDirection: 'row',
+    backgroundColor: '#fff',
   },
   image: {
-    width: 84,
-    height: 84,
-    borderRadius: 8,
-    backgroundColor: '#F3F4F6',
-    marginRight: 10,
+    width: 90,
+    height: 90,
+    borderRadius: 12,
+    backgroundColor: '#F9FAFB',
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   content: {
     flex: 1,
@@ -140,8 +148,9 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#111827',
+    fontWeight: '600',
+    color: '#1F2937',
+    lineHeight: 20,
   },
   disabledText: {
     color: '#9CA3AF',
@@ -150,60 +159,62 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
     color: '#6B7280',
+    backgroundColor: '#F3F4F6',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    alignSelf: 'flex-start',
+    borderRadius: 4,
   },
   footer: {
-    marginTop: 8,
+    marginTop: 10,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
-    gap: 8,
   },
   priceBlock: {
     flex: 1,
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
-    marginBottom: 2,
+    marginBottom: 1,
   },
   price: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: '#EF4444',
+    fontSize: 16,
+    fontWeight: '800',
+    color: '#FF4747',
   },
   stepper: {
     flexDirection: 'row',
     alignItems: 'center',
+    backgroundColor: '#F9FAFB',
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#E5E7EB',
-    borderRadius: 6,
+    borderColor: '#F3F4F6',
     overflow: 'hidden',
   },
   stepBtn: {
-    width: 28,
-    height: 28,
+    width: 30,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
   },
   stepText: {
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#374151',
   },
   qtyBox: {
-    minWidth: 32,
-    height: 28,
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: '#E5E7EB',
+    minWidth: 36,
+    height: 30,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 8,
+    paddingHorizontal: 4,
   },
   qtyText: {
-    fontSize: 14,
+    fontSize: 13,
+    fontWeight: '700',
     color: '#111827',
   },
 });

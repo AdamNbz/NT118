@@ -58,8 +58,12 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ focused }) => (
             <View style={styles.cartButtonContainer}>
-              <View style={styles.cartButton}>
-                <Feather name="shopping-cart" size={24} color="black" />
+              <View style={[styles.cartButton, focused && styles.cartButtonActive]}>
+                <Feather 
+                  name="shopping-cart" 
+                  size={24} 
+                  color={focused ? 'white' : 'black'} 
+                />
               </View>
             </View>
           ),
@@ -111,5 +115,10 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
     borderColor: '#F2F2F2',
+  },
+  cartButtonActive: {
+    backgroundColor: '#FF4747',
+    borderColor: '#FF4747',
+    transform: [{ scale: 1.1 }],
   },
 });

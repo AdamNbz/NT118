@@ -1,13 +1,15 @@
 import React from 'react';
-import { ScrollView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
+import { ScrollView, StyleSheet, Text, View, TouchableOpacity, Dimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Feather, Ionicons } from '@expo/vector-icons';
+import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import CartBottomBar from '../../features/Cart/CartBottomBar';
 import CartSection from '../../features/Cart/CartSection';
 import CartShippingProgress from '../../features/Cart/CartShippingProgress';
 import useCartScreen from '../../features/Cart/useCartScreen';
 import ProductCard from '../common/ProductCard';
+
+const { width } = Dimensions.get('window');
 
 export default function CartScreen() {
   const router = useRouter();
@@ -22,7 +24,9 @@ export default function CartScreen() {
     handleToggleAll,
     handlePressVoucher,
     handlePressProduct,
+    handlePressItem,
     handleCheckout,
+    handleDeleteShop,
   } = useCartScreen();
 
   return (
@@ -58,20 +62,25 @@ export default function CartScreen() {
             onIncreaseItem={handleIncreaseItem}
             onDecreaseItem={handleDecreaseItem}
             onPressVoucher={handlePressVoucher}
+            onPressItem={handlePressItem}
+            onDeleteShop={handleDeleteShop}
           />
         ))}
 
         <View style={styles.recommendSection}>
           <Text style={styles.recommendTitle}>Gợi ý cho bạn</Text>
 
-          <View style={styles.grid}>
-            {recommendedProducts.map((product) => (
-              <ProductCard
-                key={product.id}
-                product={product}
-                onPress={handlePressProduct}
-              />
-            ))}
+          <View style={styles.masonryContainer}>
+            <View style={styles.column}>
+              {recommendedProducts.filter((_, i) => i % 2 === 0).map((product) => (
+                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handlePressProduct} />
+              ))}
+            </View>
+            <View style={styles.column}>
+              {recommendedProducts.filter((_, i) => i % 2 !== 0).map((product) => (
+                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handlePressProduct} />
+              ))}
+            </View>
           </View>
         </View>
       </ScrollView>
@@ -114,21 +123,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#F5F5F5',
   },
   recommendSection: {
-    marginTop: 16,
-    paddingHorizontal: 12,
-    backgroundColor: '#F5F5F5',
+    marginTop: 20,
+    paddingHorizontal: 20, 
   },
   recommendTitle: {
-    fontSize: 22,
-    fontWeight: '700',
-    color: '#222',
-    marginBottom: 12,
-    backgroundColor: '#F5F5F5',
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#1B1530',
+    marginBottom: 16,
+    letterSpacing: 0.5,
   },
-  grid: {
+  masonryContainer: {
     flexDirection: 'row',
-    flexWrap: 'wrap',
     justifyContent: 'space-between',
-    backgroundColor: '#F5F5F5',
+  },
+  column: {
+    width: (Dimensions.get('window').width - 52) / 2, 
+    flexDirection: 'column',
   },
 });

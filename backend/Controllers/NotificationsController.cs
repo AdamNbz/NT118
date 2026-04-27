@@ -40,4 +40,48 @@ public class NotificationsController(AppDbContext db) : ControllerBase
 
         return Ok(notifications);
     }
+
+    [HttpPatch("{id:long}/read")]
+    public async Task<IActionResult> MarkAsRead(long id, CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var notification = await db.Notifications
+            .FirstOrDefaultAsync(x => x.Id == id && x.UserId == userId, cancellationToken);
+
+        if (notification is null)
+            return NotFound();
+
+        notification.IsRead = true;
+        await db.SaveChangesAsync(cancellationToken);
+
+        return Ok(new { message = "Đã đánh dấu đã đọc." });
+    }
+
+    [HttpPatch("read-all")]
+    public async Task<IActionResult> MarkAllAsRead(CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        await db.Notifications
+            .Where(x => x.UserId == userId && !x.IsRead)
+            .ExecuteUpdateAsync(setters => setters.SetProperty(x => x.IsRead, true), cancellationToken);
+
+        return Ok(new { message = "Đã đánh dấu tất cả đã đọc." });
+    }
+
+    [HttpDelete("cleanup")]
+    public async Task<IActionResult> CleanupInvalidNotifications(CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var deleted = await db.Database.ExecuteSqlRawAsync(
+            "DELETE FROM notifications WHERE user_id = {0} AND data IS NOT NULL AND data::text LIKE '%\"orderId\": 0%'",
+            userId, cancellationToken);
+
+        return Ok(new { message = $"Đã xóa {deleted} thông báo không hợp lệ.", deleted });
+    }
 }

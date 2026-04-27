@@ -19,7 +19,7 @@ const SectionHeader: React.FC<SectionHeaderProps> = ({
   subtitle,
   onViewAllPress,
   backgroundColor = '#4392F1',
-  viewAllText = "View all",
+  viewAllText = "Xem tất cả",
   timerText,
   icon = "time-outline",
   isBlueVariant = false,

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   View,
   Text,
@@ -24,6 +24,10 @@ const VoucherManagementScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingVoucher, setEditingVoucher] = useState<AdminVoucherDTO | null>(null);
+
+  // Search & Filter state
+  const [searchQuery, setSearchQuery] = useState('');
+  const [filterType, setFilterType] = useState<'all' | 'active' | 'inactive'>('all');
 
   // Form state
   const [code, setCode] = useState('');
@@ -54,6 +58,17 @@ const VoucherManagementScreen: React.FC = () => {
     setRefreshing(true);
     fetchVouchers();
   }, [fetchVouchers]);
+
+  const filteredVouchers = useMemo(() => {
+    return vouchers.filter(v => {
+      const matchesSearch = v.code.toLowerCase().includes(searchQuery.toLowerCase()) || 
+                            v.name.toLowerCase().includes(searchQuery.toLowerCase());
+      const matchesFilter = filterType === 'all' || 
+                            (filterType === 'active' && v.isActive) || 
+                            (filterType === 'inactive' && !v.isActive);
+      return matchesSearch && matchesFilter;
+    });
+  }, [vouchers, searchQuery, filterType]);
 
   const handleOpenModal = (voucher?: AdminVoucherDTO) => {
     if (voucher) {
@@ -92,8 +107,8 @@ const VoucherManagementScreen: React.FC = () => {
         discountValue: parseFloat(discountValue) || 0,
         minOrderValue: parseFloat(minOrderValue) || undefined,
         usageLimit: parseInt(usageLimit) || undefined,
-        startDate: new Date().toISOString(), // Default to now
-        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(), // Default to 30 days later
+        startDate: new Date().toISOString(),
+        endDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
         isActive,
       };
 
@@ -114,7 +129,7 @@ const VoucherManagementScreen: React.FC = () => {
   const handleDelete = (id: number) => {
     Alert.alert(
       'Xác nhận xóa',
-      'Bạn có chắc chắn muốn xóa voucher này?',
+      'Bạn có chắc chắn muốn xóa voucher này vĩnh viễn?',
       [
         { text: 'Hủy', style: 'cancel' },
         {
@@ -141,7 +156,7 @@ const VoucherManagementScreen: React.FC = () => {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color="#4392F9" />
+          <ActivityIndicator size="large" color="#F73658" />
         </View>
       </SafeAreaView>
     );
@@ -151,56 +166,99 @@ const VoucherManagementScreen: React.FC = () => {
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Quản lý Voucher</Text>
+        <View>
+          <Text style={styles.headerTitle}>Quản lý Voucher</Text>
+          <Text style={styles.headerSubtitle}>Mã giảm giá toàn hệ thống</Text>
+        </View>
         <TouchableOpacity style={styles.addButton} onPress={() => handleOpenModal()}>
           <Ionicons name="add" size={24} color="#fff" />
         </TouchableOpacity>
+      </View>
+
+      {/* Filter Tabs */}
+      <View style={styles.filterContainer}>
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterScroll}>
+          {[
+            { id: 'all', label: 'Tất cả' },
+            { id: 'active', label: 'Đang chạy' },
+            { id: 'inactive', label: 'Đã dừng' },
+          ].map((tab) => (
+            <TouchableOpacity
+              key={tab.id}
+              style={[styles.filterTab, filterType === tab.id && styles.filterTabActive]}
+              onPress={() => setFilterType(tab.id as any)}
+            >
+              <Text style={[styles.filterTabText, filterType === tab.id && styles.filterTabTextActive]}>
+                {tab.label}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      </View>
+
+      <View style={styles.searchContainer}>
+        <View style={styles.searchInner}>
+          <Ionicons name="search" size={18} color="#94a3b8" />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Tìm theo mã hoặc tên..."
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+          />
+        </View>
       </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
       >
-        {vouchers.map((item) => (
-          <View key={item.id} style={styles.voucherCard}>
-            <View style={styles.voucherLeft}>
-              <View style={[styles.iconContainer, { backgroundColor: item.isActive ? '#eef2ff' : '#f3f4f6' }]}>
-                <Ionicons name="ticket-outline" size={24} color={item.isActive ? '#4392F9' : '#9ca3af'} />
-              </View>
+        {filteredVouchers.map((item) => (
+          <View key={item.id} style={[styles.voucherCard, !item.isActive && styles.voucherCardDisabled]}>
+            <View style={[styles.voucherSide, { backgroundColor: item.isActive ? '#F73658' : '#cbd5e1' }]}>
+              <Ionicons name="gift-outline" size={24} color="#fff" />
             </View>
-            <View style={styles.voucherRight}>
+            
+            <View style={styles.voucherContent}>
               <View style={styles.voucherHeader}>
                 <Text style={styles.voucherCode}>{item.code}</Text>
-                <View style={[styles.statusBadge, { backgroundColor: item.isActive ? '#dcfce7' : '#fee2e2' }]}>
-                  <Text style={[styles.statusText, { color: item.isActive ? '#166534' : '#991b1b' }]}>
-                    {item.isActive ? 'Đang chạy' : 'Tạm dừng'}
-                  </Text>
-                </View>
+                <View style={[styles.dot, { backgroundColor: item.isActive ? '#10b981' : '#ef4444' }]} />
               </View>
-              <Text style={styles.voucherName}>{item.name}</Text>
-              <Text style={styles.voucherInfo}>
-                {item.discountType === 'percentage' ? `Giảm ${item.discountValue}%` : `Giảm ${formatCurrency(item.discountValue)}`}
-                {item.minOrderValue ? ` • Đơn từ ${formatCurrency(item.minOrderValue)}` : ''}
-              </Text>
-              <Text style={styles.voucherStats}>
-                Đã dùng: {item.usedCount} {item.usageLimit ? `/ ${item.usageLimit}` : ''}
-              </Text>
+              <Text style={styles.voucherName} numberOfLines={1}>{item.name}</Text>
+              
+              <View style={styles.discountRow}>
+                <Text style={styles.discountValue}>
+                  {item.discountType === 'percentage' ? `-${item.discountValue}%` : `-${formatCurrency(item.discountValue)}`}
+                </Text>
+                <Text style={styles.minOrder}>Đơn từ {formatCurrency(item.minOrderValue || 0)}</Text>
+              </View>
+
+              <View style={styles.statsRow}>
+                <View style={styles.statItem}>
+                  <Ionicons name="people-outline" size={14} color="#64748b" />
+                  <Text style={styles.statText}>{item.usedCount} lượt dùng</Text>
+                </View>
+                {item.usageLimit && (
+                  <Text style={styles.statLimit}>Giới hạn: {item.usageLimit}</Text>
+                )}
+              </View>
+
               <View style={styles.cardActions}>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleOpenModal(item)}>
-                  <Ionicons name="pencil-outline" size={20} color="#3498db" />
-                  <Text style={styles.actionText}>Sửa</Text>
+                <TouchableOpacity style={styles.editBtn} onPress={() => handleOpenModal(item)}>
+                  <Ionicons name="create-outline" size={18} color="#3b82f6" />
+                  <Text style={styles.editBtnText}>Chỉnh sửa</Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.actionBtn} onPress={() => handleDelete(item.id)}>
-                  <Ionicons name="trash-outline" size={20} color="#e74c3c" />
-                  <Text style={[styles.actionText, { color: '#e74c3c' }]}>Xóa</Text>
+                <TouchableOpacity style={styles.deleteBtn} onPress={() => handleDelete(item.id)}>
+                  <Ionicons name="trash-outline" size={18} color="#ef4444" />
                 </TouchableOpacity>
               </View>
             </View>
           </View>
         ))}
-        {vouchers.length === 0 && (
+        
+        {filteredVouchers.length === 0 && (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyText}>Chưa có voucher nào</Text>
+            <Ionicons name="ticket-outline" size={64} color="#e2e8f0" />
+            <Text style={styles.emptyText}>Không tìm thấy voucher phù hợp</Text>
           </View>
         )}
       </ScrollView>
@@ -210,53 +268,53 @@ const VoucherManagementScreen: React.FC = () => {
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{editingVoucher ? 'Sửa Voucher' : 'Tạo Voucher hệ thống'}</Text>
-              <TouchableOpacity onPress={() => setModalVisible(false)}>
-                <Ionicons name="close" size={24} color="#2c3e50" />
+              <Text style={styles.modalTitle}>{editingVoucher ? 'Cập nhật Voucher' : 'Tạo mới Voucher'}</Text>
+              <TouchableOpacity onPress={() => setModalVisible(false)} style={styles.closeModalBtn}>
+                <Ionicons name="close" size={24} color="#64748b" />
               </TouchableOpacity>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false}>
+            <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.modalForm}>
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Mã Voucher</Text>
+                <Text style={styles.label}>Mã Voucher (viết liền, không dấu)</Text>
                 <TextInput
                   style={styles.input}
                   value={code}
                   onChangeText={setCode}
-                  placeholder="Ví dụ: SUMMER2026"
+                  placeholder="Vd: GIAM50K"
                   autoCapitalize="characters"
                 />
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Tên chương trình</Text>
+                <Text style={styles.label}>Tên hiển thị</Text>
                 <TextInput
                   style={styles.input}
                   value={name}
                   onChangeText={setName}
-                  placeholder="Ví dụ: Giảm giá mùa hè"
+                  placeholder="Vd: Ưu đãi hè rực rỡ"
                 />
               </View>
 
               <View style={styles.row}>
-                <View style={[styles.formGroup, { flex: 1, marginRight: 10 }]}>
+                <View style={[styles.formGroup, { flex: 1.2, marginRight: 12 }]}>
                   <Text style={styles.label}>Loại giảm giá</Text>
-                  <View style={styles.typeSelector}>
+                  <View style={styles.toggleGroup}>
                     <TouchableOpacity
-                      style={[styles.typeBtn, discountType === 'percentage' && styles.typeBtnActive]}
+                      style={[styles.toggleBtn, discountType === 'percentage' && styles.toggleBtnActive]}
                       onPress={() => setDiscountType('percentage')}
                     >
-                      <Text style={[styles.typeBtnText, discountType === 'percentage' && styles.typeBtnTextActive]}>%</Text>
+                      <Text style={[styles.toggleText, discountType === 'percentage' && styles.toggleTextActive]}>%</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
-                      style={[styles.typeBtn, discountType === 'fixed_amount' && styles.typeBtnActive]}
+                      style={[styles.toggleBtn, discountType === 'fixed_amount' && styles.toggleBtnActive]}
                       onPress={() => setDiscountType('fixed_amount')}
                     >
-                      <Text style={[styles.typeBtnText, discountType === 'fixed_amount' && styles.typeBtnTextActive]}>VNĐ</Text>
+                      <Text style={[styles.toggleText, discountType === 'fixed_amount' && styles.toggleTextActive]}>đ</Text>
                     </TouchableOpacity>
                   </View>
                 </View>
-                <View style={[styles.formGroup, { flex: 1.5 }]}>
+                <View style={[styles.formGroup, { flex: 2 }]}>
                   <Text style={styles.label}>Giá trị giảm</Text>
                   <TextInput
                     style={styles.input}
@@ -269,7 +327,7 @@ const VoucherManagementScreen: React.FC = () => {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Đơn tối thiểu (VNĐ)</Text>
+                <Text style={styles.label}>Giá trị đơn hàng tối thiểu (đ)</Text>
                 <TextInput
                   style={styles.input}
                   value={minOrderValue}
@@ -280,28 +338,31 @@ const VoucherManagementScreen: React.FC = () => {
               </View>
 
               <View style={styles.formGroup}>
-                <Text style={styles.label}>Giới hạn sử dụng (Lượt)</Text>
+                <Text style={styles.label}>Giới hạn tổng số lượt dùng</Text>
                 <TextInput
                   style={styles.input}
                   value={usageLimit}
                   onChangeText={setUsageLimit}
                   keyboardType="numeric"
-                  placeholder="Để trống nếu không giới hạn"
+                  placeholder="Không giới hạn"
                 />
               </View>
 
-              <View style={styles.switchGroup}>
-                <Text style={styles.label}>Kích hoạt voucher</Text>
+              <View style={styles.switchRow}>
+                <View>
+                  <Text style={styles.switchLabel}>Kích hoạt chương trình</Text>
+                  <Text style={styles.switchSub}>Người dùng có thể thấy và sử dụng mã này ngay</Text>
+                </View>
                 <Switch
                   value={isActive}
                   onValueChange={setIsActive}
-                  trackColor={{ false: '#d1d5db', true: '#93c5fd' }}
-                  thumbColor={isActive ? '#3b82f6' : '#f3f4f6'}
+                  trackColor={{ false: '#e2e8f0', true: '#fecaca' }}
+                  thumbColor={isActive ? '#F73658' : '#f8fafc'}
                 />
               </View>
 
-              <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-                <Text style={styles.saveButtonText}>Lưu Voucher</Text>
+              <TouchableOpacity style={styles.saveBtn} onPress={handleSave}>
+                <Text style={styles.saveBtnText}>Hoàn tất</Text>
               </TouchableOpacity>
             </ScrollView>
           </View>
@@ -314,34 +375,94 @@ const VoucherManagementScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f7fa',
+    backgroundColor: '#f8fafc',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     paddingHorizontal: 20,
-    paddingVertical: 15,
-    paddingTop: Platform.OS === 'android' ? (StatusBar.currentHeight || 0) + 15 : 15,
+    paddingVertical: 16,
     backgroundColor: '#fff',
     borderBottomWidth: 1,
-    borderBottomColor: '#edf2f7',
+    borderBottomColor: '#f1f5f9',
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 22,
     fontWeight: '800',
-    color: '#2c3e50',
+    color: '#1e293b',
+  },
+  headerSubtitle: {
+    fontSize: 13,
+    color: '#64748b',
+    fontWeight: '500',
   },
   addButton: {
-    backgroundColor: '#3498db',
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    backgroundColor: '#F73658',
+    width: 44,
+    height: 44,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
+    elevation: 4,
+    shadowColor: '#F73658',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  filterContainer: {
+    backgroundColor: '#fff',
+    paddingVertical: 10,
+  },
+  filterScroll: {
+    paddingHorizontal: 16,
+    gap: 8,
+  },
+  filterTab: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: '#f1f5f9',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  filterTabActive: {
+    backgroundColor: '#F73658',
+    borderColor: '#F73658',
+  },
+  filterTabText: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: '#64748b',
+  },
+  filterTabTextActive: {
+    color: '#fff',
+  },
+  searchContainer: {
+    padding: 16,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
+  },
+  searchInner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f8fafc',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    height: 44,
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+  },
+  searchInput: {
+    flex: 1,
+    marginLeft: 8,
+    fontSize: 14,
+    color: '#1e293b',
   },
   scrollContent: {
     padding: 16,
+    paddingBottom: 40,
   },
   centerContainer: {
     flex: 1,
@@ -352,31 +473,25 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
     borderRadius: 16,
     flexDirection: 'row',
-    marginBottom: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    overflow: 'hidden',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-    overflow: 'hidden',
+    shadowRadius: 10,
   },
-  voucherLeft: {
-    width: 70,
-    backgroundColor: '#f8fafc',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRightWidth: 1,
-    borderRightColor: '#f1f5f9',
-    borderStyle: 'dashed',
+  voucherCardDisabled: {
+    opacity: 0.7,
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+  voucherSide: {
+    width: 60,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  voucherRight: {
+  voucherContent: {
     flex: 1,
     padding: 16,
   },
@@ -390,154 +505,208 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '800',
     color: '#1e293b',
-    letterSpacing: 0.5,
+    letterSpacing: 1,
   },
-  statusBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
+  dot: {
+    width: 8,
+    height: 8,
     borderRadius: 4,
-  },
-  statusText: {
-    fontSize: 10,
-    fontWeight: '700',
   },
   voucherName: {
     fontSize: 14,
-    color: '#475569',
     fontWeight: '600',
-    marginBottom: 4,
+    color: '#475569',
+    marginBottom: 8,
   },
-  voucherInfo: {
-    fontSize: 13,
-    color: '#64748b',
-    marginBottom: 4,
+  discountRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+    gap: 8,
+    marginBottom: 12,
   },
-  voucherStats: {
+  discountValue: {
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#F73658',
+  },
+  minOrder: {
     fontSize: 12,
     color: '#94a3b8',
-    marginBottom: 12,
+    fontWeight: '500',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statText: {
+    fontSize: 12,
+    color: '#64748b',
+    fontWeight: '500',
+  },
+  statLimit: {
+    fontSize: 11,
+    color: '#94a3b8',
+    fontStyle: 'italic',
   },
   cardActions: {
     flexDirection: 'row',
     borderTopWidth: 1,
     borderTopColor: '#f1f5f9',
     paddingTop: 12,
-    gap: 20,
+    justifyContent: 'space-between',
   },
-  actionBtn: {
+  editBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 6,
   },
-  actionText: {
+  editBtnText: {
     fontSize: 13,
-    fontWeight: '600',
-    color: '#3498db',
+    fontWeight: '700',
+    color: '#3b82f6',
+  },
+  deleteBtn: {
+    padding: 4,
   },
   emptyState: {
-    padding: 40,
+    padding: 60,
     alignItems: 'center',
   },
   emptyText: {
-    color: '#7f8c8d',
+    marginTop: 16,
+    color: '#94a3b8',
+    fontSize: 15,
+    fontWeight: '500',
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
+    backgroundColor: 'rgba(15, 23, 42, 0.7)',
     justifyContent: 'flex-end',
   },
   modalContent: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
     maxHeight: '90%',
   },
   modalHeader: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
+    padding: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f1f5f9',
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#2c3e50',
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#1e293b',
+  },
+  closeModalBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalForm: {
+    padding: 24,
+    paddingBottom: 40,
   },
   formGroup: {
-    marginBottom: 16,
+    marginBottom: 20,
+  },
+  label: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#475569',
+    marginBottom: 8,
+  },
+  input: {
+    backgroundColor: '#f8fafc',
+    borderWidth: 1,
+    borderColor: '#e2e8f0',
+    borderRadius: 14,
+    paddingHorizontal: 16,
+    height: 52,
+    fontSize: 15,
+    color: '#1e293b',
   },
   row: {
     flexDirection: 'row',
   },
-  label: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#64748b',
-    marginBottom: 8,
-  },
-  input: {
-    backgroundColor: '#f8f9fa',
-    borderWidth: 1,
-    borderColor: '#edf2f7',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    height: 50,
-    fontSize: 15,
-    color: '#2c3e50',
-  },
-  typeSelector: {
+  toggleGroup: {
     flexDirection: 'row',
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#f1f5f9',
     borderRadius: 12,
     padding: 4,
-    borderWidth: 1,
-    borderColor: '#edf2f7',
+    height: 52,
   },
-  typeBtn: {
+  toggleBtn: {
     flex: 1,
-    height: 40,
     justifyContent: 'center',
     alignItems: 'center',
     borderRadius: 8,
   },
-  typeBtnActive: {
+  toggleBtnActive: {
     backgroundColor: '#fff',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 2,
-    elevation: 2,
   },
-  typeBtnText: {
-    fontSize: 13,
-    fontWeight: '600',
+  toggleText: {
+    fontSize: 15,
+    fontWeight: '700',
     color: '#64748b',
   },
-  typeBtnTextActive: {
-    color: '#3498db',
+  toggleTextActive: {
+    color: '#F73658',
   },
-  switchGroup: {
+  switchRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 24,
-    paddingVertical: 8,
-  },
-  saveButton: {
-    backgroundColor: '#3498db',
-    height: 55,
+    backgroundColor: '#fdf2f2',
+    padding: 16,
     borderRadius: 16,
+    marginBottom: 32,
+  },
+  switchLabel: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1e293b',
+  },
+  switchSub: {
+    fontSize: 11,
+    color: '#64748b',
+    marginTop: 2,
+  },
+  saveBtn: {
+    backgroundColor: '#F73658',
+    height: 58,
+    borderRadius: 18,
     justifyContent: 'center',
     alignItems: 'center',
-    marginTop: 10,
-    marginBottom: 20,
+    elevation: 4,
+    shadowColor: '#F73658',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
   },
-  saveButtonText: {
+  saveBtnText: {
     color: '#fff',
-    fontSize: 16,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
   },
 });
 

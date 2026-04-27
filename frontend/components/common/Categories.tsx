@@ -17,6 +17,8 @@ export interface Category {
 
 interface CategoriesProps {
   categories: Category[];
+  onSortPress?: () => void;
+  onFilterPress?: () => void;
 }
 
 const IconRenderer = ({ icon }: { icon: Category['icon'] }) => {
@@ -40,18 +42,18 @@ const IconRenderer = ({ icon }: { icon: Category['icon'] }) => {
   }
 };
 
-const Categories: React.FC<CategoriesProps> = ({ categories }) => {
+const Categories: React.FC<CategoriesProps> = ({ categories, onSortPress, onFilterPress }) => {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>All Featured</Text>
+        <Text style={styles.headerTitle}>Tính Năng Nổi Bật</Text>
         <View style={styles.filterButtons}>
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterText}>Sort</Text>
+          <TouchableOpacity style={styles.filterButton} onPress={onSortPress}>
+            <Text style={styles.filterText}>Sắp xếp</Text>
             <Ionicons name="swap-vertical" size={14} color="black" />
           </TouchableOpacity>
-          <TouchableOpacity style={styles.filterButton}>
-            <Text style={styles.filterText}>Filter</Text>
+          <TouchableOpacity style={styles.filterButton} onPress={onFilterPress}>
+            <Text style={styles.filterText}>Lọc</Text>
             <Feather name="filter" size={14} color="black" />
           </TouchableOpacity>
         </View>

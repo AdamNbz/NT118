@@ -1,5 +1,15 @@
-import React, { useEffect, useState } from 'react';
-import { View, Text, ScrollView, StyleSheet, ActivityIndicator, Dimensions, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState, useCallback } from 'react';
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Dimensions, 
+  TouchableOpacity,
+  RefreshControl,
+  StatusBar
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import Header from '../common/Header';
@@ -14,47 +24,41 @@ import PromotionBanner from '../common/PromotionBanner';
 import WishlistBanner from '../common/WishlistBanner';
 import NewArrivalsCard from '../common/NewArrivalsCard';
 import { getProducts, getFeaturedProducts, ProductDTO, formatPrice, formatSold } from '../../lib/productApi';
+import { userApi, UserProfileDTO } from '../../lib/userApi';
 
 const categories: Category[] = [
   {
     id: 1,
-    name: 'KH Thân Thiết',
-    icon: { library: 'MaterialCommunityIcons', name: 'medal-outline', color: '#E8900C', size: 28 },
-    bgColor: '#FFF3E0',
+    name: 'Thân Thiết',
+    icon: { library: 'MaterialCommunityIcons', name: 'medal-outline', color: '#F73658', size: 28 },
+    bgColor: '#fff',
   },
   {
     id: 2,
     name: 'Mã Giảm Giá',
-    icon: { library: 'MaterialCommunityIcons', name: 'ticket-percent-outline', color: '#E53935', size: 28 },
-    bgColor: '#FFEBEE',
+    icon: { library: 'MaterialCommunityIcons', name: 'ticket-percent-outline', color: '#F73658', size: 28 },
+    bgColor: '#fff',
   },
   {
     id: 3,
-    name: 'Trẻ Em',
-    icon: { library: 'MaterialIcons', name: 'child-care', color: '#43A047', size: 28 },
-    bgColor: '#E8F5E9',
+    name: 'Đồ Trẻ Em',
+    icon: { library: 'MaterialIcons', name: 'child-care', color: '#F73658', size: 28 },
+    bgColor: '#fff',
   },
   {
     id: 4,
-    name: 'Thời Trang Nam',
-    icon: { library: 'Ionicons', name: 'shirt-outline', color: '#1E88E5', size: 26 },
-    bgColor: '#E3F2FD',
+    name: 'Thời Trang',
+    icon: { library: 'Ionicons', name: 'shirt-outline', color: '#F73658', size: 26 },
+    bgColor: '#fff',
   },
   {
     id: 5,
-    name: 'Thời Trang Nữ',
-    icon: { library: 'MaterialCommunityIcons', name: 'hanger', color: '#E91E8A', size: 28 },
-    bgColor: '#FCE4EC',
-  },
-  {
-    id: 6,
     name: 'Quà Tặng',
-    icon: { library: 'MaterialCommunityIcons', name: 'gift-outline', color: '#8E24AA', size: 28 },
-    bgColor: '#F3E5F5',
+    icon: { library: 'MaterialCommunityIcons', name: 'gift-outline', color: '#F73658', size: 28 },
+    bgColor: '#fff',
   },
 ];
 
-/** Transform API product to ProductCard format */
 function toCardProduct(dto: ProductDTO): Product {
   return {
     id: dto.id,
@@ -62,7 +66,7 @@ function toCardProduct(dto: ProductDTO): Product {
     description: dto.description || '',
     price: formatPrice(dto.price),
     originalPrice: dto.originalPrice ? formatPrice(dto.originalPrice) : undefined,
-    discount: dto.discount > 0 ? `${dto.discount}% Off` : undefined,
+    discount: dto.discount > 0 ? `Giảm ${dto.discount}%` : undefined,
     rating: dto.rating,
     reviews: formatSold(dto.soldQuantity),
     image: dto.image ? { uri: dto.image } : require('../../assets/images/Group 34010.png'),
@@ -71,76 +75,153 @@ function toCardProduct(dto: ProductDTO): Product {
 
 const HomePage = () => {
   const router = useRouter();
+  const [user, setUser] = useState<UserProfileDTO | null>(null);
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
   const { width } = Dimensions.get('window');
 
-  useEffect(() => {
-    loadProducts();
-  }, []);
-
-  const loadProducts = async () => {
+  const loadData = useCallback(async () => {
     try {
-      setLoading(true);
-      const [featured, newest, suggested] = await Promise.all([
-        getFeaturedProducts(8),
-        getProducts({ page: 1, pageSize: 8, sort: 'newest' }),
+      const [profile, featured, newest, suggested] = await Promise.all([
+        userApi.getProfile().catch(() => null),
+        getFeaturedProducts(6),
+        getProducts({ page: 1, pageSize: 6, sort: 'newest' }),
         getProducts({ page: 1, pageSize: 6, sort: 'popular' }),
       ]);
+
+      if (profile) setUser(profile);
       setFeaturedProducts(featured.map(toCardProduct));
       setNewestProducts(newest.data.map(toCardProduct));
       setSuggestedProducts(suggested.data.map(toCardProduct));
     } catch (err) {
-      console.log('Failed to load products:', err);
+      console.log('Failed to load home data:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
+  }, []);
+
+  useEffect(() => {
+    loadData();
+  }, [loadData]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadData();
+  };
+
+  const handleSort = () => {
+    const options = [
+      { text: 'Mới nhất', value: 'newest' },
+      { text: 'Giá thấp đến cao', value: 'price_asc' },
+      { text: 'Giá cao đến thấp', value: 'price_desc' },
+      { text: 'Phổ biến nhất', value: 'popular' },
+      { text: 'Hủy', value: 'cancel', style: 'cancel' as const },
+    ];
+
+    require('react-native').Alert.alert(
+      'Sắp xếp theo',
+      'Chọn tiêu chí sắp xếp cho sản phẩm',
+      options.map(opt => ({
+        text: opt.text,
+        style: opt.style,
+        onPress: () => {
+          if (opt.value !== 'cancel') {
+            router.push(`/search?sort=${opt.value}` as any);
+          }
+        }
+      }))
+    );
+  };
+
+  const handleFilter = () => {
+    const options = [
+      { text: 'Tất cả danh mục', id: null },
+      { text: 'Thời Trang Nam', id: 4 },
+      { text: 'Thời Trang Nữ', id: 5 },
+      { text: 'Đồ Trẻ Em', id: 3 },
+      { text: 'Quà Tặng', id: 6 },
+      { text: 'Hủy', id: 'cancel', style: 'cancel' as const },
+    ];
+
+    require('react-native').Alert.alert(
+      'Lọc theo danh mục',
+      'Chọn danh mục bạn muốn tìm kiếm',
+      options.map(opt => ({
+        text: opt.text,
+        style: opt.style as any,
+        onPress: () => {
+          if (opt.id !== 'cancel') {
+            const url = opt.id ? `/search?categoryId=${opt.id}` : '/search';
+            router.push(url as any);
+          }
+        }
+      }))
+    );
   };
 
   const handleProductPress = (product: Product) => {
     router.push(`/product/${product.id}` as any);
   };
 
-
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Header onMessagePress={() => router.push('/chat')} />
-
-        <TouchableOpacity onPress={() => setIsSearchVisible(true)} activeOpacity={0.9}>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <StatusBar barStyle="dark-content" />
+      <Header 
+        userName={user?.name} 
+        avatarUrl={user?.avatarUrl}
+        onMessagePress={() => router.push('/chat')}
+        onProfilePress={() => router.push('/(tabs)/settings')}
+      />
+      
+      <ScrollView 
+        showsVerticalScrollIndicator={false}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F73658']} />}
+      >
+        <TouchableOpacity 
+          onPress={() => setIsSearchVisible(true)} 
+          activeOpacity={0.9}
+          style={styles.searchWrapper}
+        >
           <View pointerEvents="none">
             <SearchBar
-              placeholder="Bạn đang tìm gì..."
+              placeholder="Tìm kiếm sản phẩm, thương hiệu..."
               editable={false}
             />
           </View>
         </TouchableOpacity>
 
-        <Categories categories={categories} />
+        <Categories 
+          categories={categories} 
+          onSortPress={handleSort}
+          onFilterPress={handleFilter}
+        />
 
         <Banner
-          title="50-40% OFF"
-          subtitle="Now in (product)"
-          detail="All colours"
+          title="Siêu Sale Mùa Hè"
+          subtitle="Giảm giá lên đến 50%"
+          detail="Áp dụng cho toàn bộ ngành hàng thời trang"
+          image={require('../../assets/images/slash/sales.png')}
         />
 
         <SectionHeader
-          title="Deal of the Day"
-          timerText="22h 55m 20s remaining"
-          isBlueVariant={true}
+          title="Deal Chớp Nhoáng"
+          timerText="Kết thúc sau 02:55:20"
+          isBlueVariant={false}
           onViewAllPress={() => { }}
         />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#F83758" style={{ marginVertical: 20 }} />
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color="#F73658" style={{ marginVertical: 20 }} />
         ) : (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, marginTop: 12 }}
+            contentContainerStyle={styles.horizontalList}
           >
             {featuredProducts.map((product) => (
               <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
@@ -149,57 +230,53 @@ const HomePage = () => {
         )}
 
         <SpecialOffer
-          title="Special Offers"
-          description="We make sure you get the offer you need at best prices"
+          title="Ưu Đãi Đặc Biệt"
+          description="Chúng tôi đảm bảo bạn sẽ nhận được mức giá tốt nhất thị trường"
           emoji="😱"
         />
 
         <PromotionBanner
-          title="Tai nghe Chụp Tai"
-          subtitle="Từ khoá gợi ý"
-          buttonText="Tìm Ngay"
-          image={require('../../assets/images/homepage/icons/unsplash_GCDjllzoKLo.svg')}
+          title="Tai nghe Sony XM5"
+          subtitle="Chống ồn đỉnh cao"
+          buttonText="Mua Ngay"
+          image={require('../../assets/images/slash/shopping.png')}
         />
 
-        <WishlistBanner
-          onPress={() => { }}
+        <WishlistBanner onPress={() => router.push('/(tabs)/wishlist')} />
+
+        <SectionHeader
+          title="Sản phẩm mới nhất"
+          onViewAllPress={() => { }}
         />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#F83758" style={{ marginVertical: 20 }} />
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color="#F73658" style={{ marginVertical: 20 }} />
         ) : (
           <ScrollView
             horizontal
             showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ paddingHorizontal: 16, marginTop: 12 }}
+            contentContainerStyle={styles.horizontalList}
           >
-            {newestProducts.map((product) => (<ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
+            {newestProducts.map((product) => (
+              <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
             ))}
           </ScrollView>
         )}
 
         <NewArrivalsCard
-          title="New Arrivals"
-          subtitle="Summer' 25 Collections"
+          title="Hàng Mới Về"
+          subtitle="Bộ sưu tập Hè 2026"
           onViewAll={() => { }}
-          image={require('../../assets/images/homepage/icons/unsplash_OYYE4g-I5ZQ.svg')}
+          image={require('../../assets/images/slash/shop.png')}
         />
 
         <SectionHeader
-          title="Quảng cáo"
-          subtitle="up to 50% Off"
-          backgroundColor="white"
-          viewAllText=""
-          onViewAllPress={() => { }}
-        />
-
-        <SectionHeader
-          title="Gợi ý cho bạn"
+          title="Gợi ý dành cho bạn"
           onViewAllPress={() => router.push('/search')}
         />
 
-        {loading ? (
-          <ActivityIndicator size="large" color="#F83758" style={{ marginVertical: 20 }} />
+        {loading && !refreshing ? (
+          <ActivityIndicator size="large" color="#F73658" style={{ marginVertical: 20 }} />
         ) : (
           <View style={styles.masonryContainer}>
             <View style={[styles.column, { width: (width - 40) / 2 }]}>
@@ -215,14 +292,13 @@ const HomePage = () => {
           </View>
         )}
 
-        <View style={{ height: 100 }} />
+        <View style={{ height: 120 }} />
       </ScrollView>
 
       <SearchDetail
         visible={isSearchVisible}
         onClose={() => setIsSearchVisible(false)}
       />
-
     </SafeAreaView>
   );
 };
@@ -230,14 +306,15 @@ const HomePage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#fff',
   },
-  productList: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
+  searchWrapper: {
+    marginTop: 8,
+  },
+  horizontalList: {
     paddingHorizontal: 16,
-    marginTop: 16,
-    justifyContent: 'space-between',
+    marginTop: 8,
+    paddingBottom: 8,
   },
   masonryContainer: {
     flexDirection: 'row',
@@ -251,5 +328,3 @@ const styles = StyleSheet.create({
 });
 
 export default HomePage;
-
-

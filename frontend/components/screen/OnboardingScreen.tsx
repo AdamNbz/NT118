@@ -1,7 +1,8 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, SafeAreaView, Dimensions } from 'react-native';
+import { View, Text, TouchableOpacity, SafeAreaView, Dimensions, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
+import { LinearGradient } from 'expo-linear-gradient';
+import { OnboardingIllustration } from '../illustrations';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 
@@ -17,148 +18,181 @@ const OnboardingScreen = () => {
   };
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: 'white' }}>
-      {/* Top Status Bar Placeholder */}
-      <View style={{ width: SCREEN_WIDTH, height: 44, flexDirection: 'row', alignItems: 'center', paddingHorizontal: 21 }}>
-        <Text style={{ fontSize: 15, fontWeight: '500', color: 'black' }}>9:41</Text>
-      </View>
-
+    <SafeAreaView style={styles.container}>
       {/* Header with Step and Skip */}
-      <View style={{ 
-        flexDirection: 'row', 
-        justifyContent: 'space-between', 
-        alignItems: 'center',
-        paddingHorizontal: 17, 
-        marginTop: 1, 
-      }}>
-        <View style={{ flexDirection: 'row' }}>
-          <Text style={{ color: 'black', fontSize: 18, fontWeight: '600' }}>1</Text>
-          <Text style={{ color: '#A0A0A1', fontSize: 18, fontWeight: '600' }}>/3</Text>
+      <View style={styles.header}>
+        <View style={styles.stepRow}>
+          <Text style={styles.stepActive}>1</Text>
+          <Text style={styles.stepTotal}>/3</Text>
         </View>
-        <TouchableOpacity onPress={handleSkip}>
-          <Text style={{ color: 'black', fontSize: 18, fontWeight: '600' }}>Skip</Text>
+        <TouchableOpacity onPress={handleSkip} style={styles.skipBtn}>
+          <Text style={styles.skipText}>Skip</Text>
         </TouchableOpacity>
       </View>
 
       {/* Main Content Area */}
-      <View style={{ flex: 1, alignItems: 'center' }}>
-        {/* Illustration Container */}
-        <View style={{ 
-          width: 300, 
-          height: 300, 
-          marginTop: 88, 
-          position: 'relative',
-        }}>
-          {/* Layered SVG images from slashsp folder for better quality */}
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Shelf_2--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Shelf_1--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
-          
-          {/* Midground - Counter and Clothes */}
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Counter--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Clothes--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
-
-          {/* Foreground - Character and Mannequin */}
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Character--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Mannequin--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
-          
-          {/* Small Details */}
-          <Image 
-            source={require('../../assets/images/slashsp/freepik--Boxes--inject-4.svg')}
-            style={{ width: '100%', height: '100%', position: 'absolute' }}
-            contentFit="contain"
-          />
+      <View style={styles.content}>
+        {/* Illustration with subtle background */}
+        <View style={styles.illustrationWrapper}>
+          <View style={styles.illustrationBg} />
+          <OnboardingIllustration width={280} height={280} />
         </View>
 
         {/* Text Content */}
-        <View style={{ marginTop: 15, alignItems: 'center', paddingHorizontal: 17 }}>
-          <Text 
-            style={{ 
-              color: 'black', 
-              fontSize: 24, 
-              fontWeight: '800', 
-              textAlign: 'center',
-              marginBottom: 15
-            }}
-          >
-            Chọn sản phẩm
-          </Text>
-
-          <Text 
-            style={{ 
-              color: '#A8A8A9', 
-              fontSize: 14, 
-              fontWeight: '600', 
-              textAlign: 'center', 
-              lineHeight: 24,
-              letterSpacing: 0.28,
-              width: 340
-            }}
-          >
+        <View style={styles.textContainer}>
+          <Text style={styles.title}>Chọn sản phẩm</Text>
+          <Text style={styles.subtitle}>
             Khám phá hàng triệu sản phẩm từ thời trang, điện tử đến đồ gia dụng. Tìm món đồ yêu thích chỉ trong vài giây!
           </Text>
         </View>
       </View>
 
       {/* Footer with Pagination and Next */}
-      <View style={{ 
-        flexDirection: 'row', 
-        alignItems: 'center', 
-        justifyContent: 'space-between', 
-        paddingHorizontal: 20, 
-        height: 100,
-        marginBottom: 20
-      }}>
-        <View style={{ width: 44 }} /> 
-        
+      <View style={styles.footer}>
+        <View style={{ width: 50 }} />
+
         {/* Pagination Dots */}
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ width: 40, height: 8, backgroundColor: '#17223B', borderRadius: 100 }} />
-          <View style={{ width: 10, height: 10, backgroundColor: 'rgba(23, 34, 59, 0.20)', borderRadius: 100 }} />
-          <View style={{ width: 10, height: 10, backgroundColor: 'rgba(23, 34, 59, 0.20)', borderRadius: 100 }} />
+        <View style={styles.dots}>
+          <View style={[styles.dotActive]} />
+          <View style={styles.dotInactive} />
+          <View style={styles.dotInactive} />
         </View>
 
         {/* Next Button */}
-        <TouchableOpacity 
-          onPress={handleNext}
-          style={{ paddingVertical: 10 }}
-        >
-          <Text 
-            style={{ 
-              color: '#F83758', 
-              fontSize: 18, 
-              fontWeight: '600'
-            }}
+        <TouchableOpacity onPress={handleNext} style={styles.nextBtn}>
+          <LinearGradient
+            colors={['#F83758', '#FF6B8A']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.nextGradient}
           >
-            Next
-          </Text>
+            <Text style={styles.nextText}>Next</Text>
+          </LinearGradient>
         </TouchableOpacity>
       </View>
     </SafeAreaView>
   );
 };
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FAFBFF',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 8,
+  },
+  stepRow: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  stepActive: {
+    color: '#17223B',
+    fontSize: 20,
+    fontWeight: '700',
+  },
+  stepTotal: {
+    color: '#B0B0B2',
+    fontSize: 20,
+    fontWeight: '600',
+  },
+  skipBtn: {
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+  },
+  skipText: {
+    color: '#17223B',
+    fontSize: 16,
+    fontWeight: '600',
+  },
+  content: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingBottom: 20,
+  },
+  illustrationWrapper: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 32,
+  },
+  illustrationBg: {
+    position: 'absolute',
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: 'rgba(248, 55, 88, 0.06)',
+  },
+  textContainer: {
+    alignItems: 'center',
+    paddingHorizontal: 32,
+  },
+  title: {
+    color: '#17223B',
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 12,
+    letterSpacing: 0.3,
+  },
+  subtitle: {
+    color: '#8E8E93',
+    fontSize: 15,
+    fontWeight: '500',
+    textAlign: 'center',
+    lineHeight: 24,
+    letterSpacing: 0.2,
+    maxWidth: 320,
+  },
+  footer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 24,
+    paddingBottom: 36,
+    paddingTop: 12,
+  },
+  dots: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dotActive: {
+    width: 32,
+    height: 8,
+    backgroundColor: '#F83758',
+    borderRadius: 100,
+  },
+  dotInactive: {
+    width: 8,
+    height: 8,
+    backgroundColor: 'rgba(23, 34, 59, 0.15)',
+    borderRadius: 100,
+  },
+  nextBtn: {
+    borderRadius: 20,
+    overflow: 'hidden',
+    elevation: 3,
+    shadowColor: '#F83758',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+  },
+  nextGradient: {
+    paddingVertical: 10,
+    paddingHorizontal: 24,
+    borderRadius: 20,
+  },
+  nextText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: '700',
+  },
+});
 
 export default OnboardingScreen;

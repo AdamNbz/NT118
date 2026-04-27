@@ -110,6 +110,16 @@ export const adminApi = {
     return res.data;
   },
 
+  updateUser: async (id: number, data: Partial<AdminUserDTO>): Promise<void> => {
+    if (USE_MOCK) return;
+    await apiClient.put(`/api/admin/users/${id}`, data);
+  },
+
+  deleteUser: async (id: number): Promise<void> => {
+    if (USE_MOCK) return;
+    await apiClient.delete(`/api/admin/users/${id}`);
+  },
+
   getShops: async (): Promise<AdminShopDTO[]> => {
     if (USE_MOCK) {
       return [
@@ -119,6 +129,16 @@ export const adminApi = {
     }
     const res = await apiClient.get('/api/admin/shops');
     return res.data;
+  },
+
+  updateShop: async (id: number, data: Partial<AdminShopDTO>): Promise<void> => {
+    if (USE_MOCK) return;
+    await apiClient.put(`/api/admin/shops/${id}`, data);
+  },
+
+  deleteShop: async (id: number): Promise<void> => {
+    if (USE_MOCK) return;
+    await apiClient.delete(`/api/admin/shops/${id}`);
   },
 
   // --- Categories ---

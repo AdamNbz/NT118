@@ -58,8 +58,14 @@ apiClient.interceptors.response.use(
     console.log('<<< API Error:', err.message);
     console.log('<<< Error code:', err.code);
     console.log('<<< Error config:', err.config?.baseURL, err.config?.url);
+    if (err.config?.data) {
+      console.log('<<< Request payload:', err.config.data);
+    }
 
-    const data = err.response?.data as { message?: string; title?: string } | undefined;
+    const data = err.response?.data as { message?: string; title?: string; errors?: any } | undefined;
+    if (data?.errors) {
+      console.log('<<< Validation Errors:', JSON.stringify(data.errors, null, 2));
+    }
     let message = `Không kết nối được máy chủ (${API_BASE_URL}). Bật backend cổng 5058 hoặc đặt EXPO_PUBLIC_API_URL.`;
     if (typeof data?.message === 'string') message = data.message;
     else if (typeof data?.title === 'string') message = data.title;

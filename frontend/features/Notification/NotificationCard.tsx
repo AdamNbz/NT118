@@ -9,7 +9,7 @@ type Props = {
 
 export default function NotificationCard({ item }: Props) {
   return (
-    <View style={styles.notificationItem}>
+    <View style={[styles.notificationItem, item.isRead && styles.notificationItemRead]}>
       {/* Thumbnail/Icon */}
       <View style={[styles.thumbnail, { backgroundColor: item.bgColor }]}>
         <Feather name={item.iconName || 'bell'} size={24} color={item.iconColor || '#fff'} />
@@ -19,14 +19,17 @@ export default function NotificationCard({ item }: Props) {
       <View style={styles.contentContainer}>
         <View style={styles.headerRow}>
           <View style={styles.titleWrapper}>
-            <Text style={styles.title} numberOfLines={2}>
+            <Text style={[styles.title, item.isRead && styles.titleRead]} numberOfLines={2}>
               {item.title}
             </Text>
           </View>
-          <Text style={styles.time}>{item.time}</Text>
+          <View style={styles.timeRow}>
+            {!item.isRead && <View style={styles.unreadDot} />}
+            <Text style={styles.time}>{item.time}</Text>
+          </View>
         </View>
 
-        <Text style={styles.description} numberOfLines={2}>
+        <Text style={[styles.description, item.isRead && styles.descriptionRead]} numberOfLines={2}>
           {item.description}
         </Text>
 
@@ -51,6 +54,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
     borderBottomColor: '#F1F5F9',
+  },
+  notificationItemRead: {
+    backgroundColor: '#F8FAFC',
   },
   thumbnail: {
     width: 48,
@@ -79,6 +85,21 @@ const styles = StyleSheet.create({
     color: '#1E293B',
     lineHeight: 20,
   },
+  titleRead: {
+    fontWeight: '400',
+    color: '#64748B',
+  },
+  timeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#FF4747',
+  },
   time: {
     fontSize: 12,
     color: '#94A3B8',
@@ -89,6 +110,9 @@ const styles = StyleSheet.create({
     color: '#475569',
     lineHeight: 18,
     marginBottom: 6,
+  },
+  descriptionRead: {
+    color: '#94A3B8',
   },
   statusText: {
     fontSize: 12,

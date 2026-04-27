@@ -1,0 +1,164 @@
+import { useEffect, useRef, useCallback, useState } from 'react';
+import * as signalR from '@microsoft/signalr';
+import { apiClient, API_BASE_URL } from './apiClient';
+import { getAuthToken } from './authToken';
+
+// ── Backend response shape ──────────────────────────────────────────
+export interface BackendNotification {
+  id: number;
+  type: string;
+  title: string;
+  message: string | null;
+  data: string | null;
+  isRead: boolean;
+  createdAt: string;
+}
+
+// ── API calls ───────────────────────────────────────────────────────
+export async function fetchNotifications(unreadOnly = false): Promise<BackendNotification[]> {
+  const res = await apiClient.get('/api/notifications', { params: { unreadOnly } });
+  const data = res.data?.data || res.data;
+  return Array.isArray(data) ? data : [];
+}
+
+export async function markNotificationRead(id: number): Promise<void> {
+  await apiClient.patch(`/api/notifications/${id}/read`);
+}
+
+export async function markAllNotificationsRead(): Promise<void> {
+  await apiClient.patch('/api/notifications/read-all');
+}
+
+export async function cleanupInvalidNotifications(): Promise<number> {
+  const res = await apiClient.delete('/api/notifications/cleanup');
+  const data = res.data?.data || res.data;
+  return data?.deleted ?? 0;
+}
+
+// ── SignalR singleton ────────────────────────────────────────────────
+let sharedConnection: signalR.HubConnection | null = null;
+let connectionRefCount = 0;
+const listeners: Set<(n: BackendNotification) => void> = new Set();
+
+async function ensureConnection() {
+  if (sharedConnection) return;
+
+  const token = await getAuthToken();
+  if (!token) return;
+
+  const conn = new signalR.HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL}/hubs/notifications`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect()
+    .build();
+
+  conn.on('notification.created', (n: BackendNotification) => {
+    listeners.forEach((cb) => cb(n));
+  });
+
+  try {
+    await conn.start();
+    sharedConnection = conn;
+  } catch {
+    // silent — will auto-reconnect
+  }
+}
+
+async function releaseConnection() {
+  if (sharedConnection) {
+    await sharedConnection.stop();
+    sharedConnection = null;
+  }
+}
+
+export function useNotificationSignalR(onNotification?: (n: BackendNotification) => void) {
+  const callbackRef = useRef(onNotification);
+  callbackRef.current = onNotification;
+
+  useEffect(() => {
+    if (!onNotification) return;
+
+    const cb = (n: BackendNotification) => callbackRef.current?.(n);
+    listeners.add(cb);
+    connectionRefCount++;
+
+    ensureConnection();
+
+    return () => {
+      listeners.delete(cb);
+      connectionRefCount--;
+      if (connectionRefCount <= 0) {
+        connectionRefCount = 0;
+        releaseConnection();
+      }
+    };
+  }, []);
+}
+
+// ── Shared notification state hook ──────────────────────────────────
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<BackendNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await fetchNotifications();
+      setNotifications(data);
+      setUnreadCount(data.filter((n) => !n.isRead).length);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const data = await fetchNotifications(true);
+      setUnreadCount(data.length);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const handleRealtimeNotification = useCallback((n: BackendNotification) => {
+    setNotifications((prev) => [n, ...prev]);
+    setUnreadCount((prev) => prev + 1);
+  }, []);
+
+  const markRead = useCallback(async (id: number) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const markAllRead = useCallback(async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  return {
+    notifications,
+    loading,
+    unreadCount,
+    load,
+    loadUnreadCount,
+    handleRealtimeNotification,
+    markRead,
+    markAllRead,
+  };
+}

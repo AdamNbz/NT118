@@ -130,11 +130,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  profilePlaceholder: {
-    width: '100%',
-    height: '100%',
-    backgroundColor: '#E0E0E0',
-  },
 });
 
 export default Header;

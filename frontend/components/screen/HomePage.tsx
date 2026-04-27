@@ -108,7 +108,9 @@ const HomePage = () => {
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView showsVerticalScrollIndicator={false}>
-        <Header onMessagePress={() => router.push('/chat')} />
+        <Header 
+          onMessagePress={() => router.push('/chat')} 
+        />
 
         <TouchableOpacity onPress={() => setIsSearchVisible(true)} activeOpacity={0.9}>
           <View pointerEvents="none">

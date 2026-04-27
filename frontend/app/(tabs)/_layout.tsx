@@ -5,9 +5,15 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNotifications, useNotificationSignalR } from '@/lib/notificationApi';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { unreadCount, loadUnreadCount, handleRealtimeNotification } = useNotifications();
+
+  useNotificationSignalR(handleRealtimeNotification);
+
+  React.useEffect(() => { loadUnreadCount(); }, [loadUnreadCount]);
 
   return (
     <Tabs
@@ -70,7 +76,16 @@ export default function TabLayout() {
         options={{
           title: 'Thông báo',
           tabBarIcon: ({ color, focused }) => (
-            <Feather name="bell" size={24} color={focused ? '#FF4747' : color} />
+            <View>
+              <Feather name="bell" size={24} color={focused ? '#FF4747' : color} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
@@ -111,5 +126,24 @@ const styles = StyleSheet.create({
     elevation: 5,
     borderWidth: 1,
     borderColor: '#F2F2F2',
+  },
+  notifBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
+    backgroundColor: '#FF4747',
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

@@ -2,37 +2,52 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
-export default function PaymentMethodSection() {
+interface PaymentMethodSectionProps {
+  selectedMethod: 'cod' | 'vnpay';
+  onSelectMethod: (method: 'cod' | 'vnpay') => void;
+}
+
+export default function PaymentMethodSection({ selectedMethod, onSelectMethod }: PaymentMethodSectionProps) {
   return (
     <View style={styles.sectionBlock}>
       <View style={styles.rowItemPayment}>
         <Text style={styles.paymentTitleTitle}>Phương thức thanh toán</Text>
       </View>
 
-      <View style={styles.paymentMethodRow}>
+      <TouchableOpacity style={styles.paymentMethodRow} onPress={() => onSelectMethod('cod')}>
         <View style={styles.paymentMethodLeft}>
-          <Ionicons name="cash" size={24} color="#888" />
+          <Ionicons name="cash" size={24} color={selectedMethod === 'cod' ? "#F83758" : "#888"} />
           <Text style={styles.paymentMethodName}>  Thanh toán khi nhận hàng</Text>
         </View>
-        <MaterialCommunityIcons name="checkbox-blank-circle-outline" size={24} color="#888" />
-      </View>
+        <MaterialCommunityIcons 
+          name={selectedMethod === 'cod' ? "check-circle" : "checkbox-blank-circle-outline"} 
+          size={24} 
+          color={selectedMethod === 'cod' ? "#F83758" : "#888"} 
+        />
+      </TouchableOpacity>
       
-      <View style={styles.paymentMethodRow}>
+      <TouchableOpacity style={styles.paymentMethodRow} onPress={() => onSelectMethod('vnpay')}>
         <View style={styles.paymentMethodLeft}>
-          <MaterialCommunityIcons name="credit-card-outline" size={24} color="#F83758" />
+          <MaterialCommunityIcons name="credit-card-outline" size={24} color={selectedMethod === 'vnpay' ? "#F83758" : "#888"} />
           <Text style={styles.paymentMethodName}>  VNPay (Ví điện tử / Thẻ ATM)</Text>
         </View>
-        <MaterialCommunityIcons name="check-circle" size={24} color="#F83758" />
-      </View>
+        <MaterialCommunityIcons 
+          name={selectedMethod === 'vnpay' ? "check-circle" : "checkbox-blank-circle-outline"} 
+          size={24} 
+          color={selectedMethod === 'vnpay' ? "#F83758" : "#888"} 
+        />
+      </TouchableOpacity>
 
-      <View style={styles.paymentChild}>
-         <View style={styles.spayBalanceRow}>
-           <View style={styles.spayBalanceCol}>
-             <Text style={styles.vnpayDesc}>Thanh toán an toàn qua cổng VNPay.</Text>
-             <Text style={styles.spayDiscount}>Mở app ngân hàng để quét mã QR</Text>
+      {selectedMethod === 'vnpay' && (
+        <View style={styles.paymentChild}>
+           <View style={styles.spayBalanceRow}>
+             <View style={styles.spayBalanceCol}>
+               <Text style={styles.vnpayDesc}>Thanh toán an toàn qua cổng VNPay.</Text>
+               <Text style={styles.spayDiscount}>Mở app ngân hàng để quét mã QR</Text>
+             </View>
            </View>
-         </View>
-      </View>
+        </View>
+      )}
     </View>
   );
 }

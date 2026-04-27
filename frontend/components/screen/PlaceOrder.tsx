@@ -166,7 +166,7 @@ const PlaceOrder: React.FC<PlaceOrderProps> = ({ productId = 1, quantity = 1 }) 
             <Text style={styles.viewDetailsText}>Xem chi tiết</Text>
           </TouchableOpacity>
         </View>
-        <Link href="/payment" asChild>
+        <Link href={{ pathname: '/payment', params: { productId, quantity: qty } }} asChild>
           <TouchableOpacity style={styles.checkoutButton} activeOpacity={0.8}>
             <Text style={styles.checkoutButtonText}>Tiến hành thanh toán</Text>
           </TouchableOpacity>

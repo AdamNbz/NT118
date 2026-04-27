@@ -20,7 +20,7 @@ public class Notification
     [Column("message")]
     public string? MessageText { get; set; }
 
-    [Column("data")]
+    [Column("data", TypeName = "jsonb")]
     public string? Data { get; set; }
 
     [Column("is_read")]

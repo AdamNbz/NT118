@@ -7,13 +7,11 @@ import { clearAuthToken } from '../../lib/authToken';
 
 import { userApi, UserProfileDTO } from '../../lib/userApi';
 
+import { useFocusEffect } from '@react-navigation/native';
+
 const BuyerAccountScreen: React.FC = () => {
   const router = useRouter();
   const [profile, setProfile] = React.useState<UserProfileDTO | null>(null);
-
-  React.useEffect(() => {
-    fetchProfile();
-  }, []);
 
   const fetchProfile = async () => {
     try {
@@ -23,6 +21,12 @@ const BuyerAccountScreen: React.FC = () => {
       console.error('Failed to fetch profile in account screen:', error);
     }
   };
+
+  useFocusEffect(
+    React.useCallback(() => {
+      fetchProfile();
+    }, [])
+  );
 
   const orderActions = [
     { key: 'confirm', icon: 'clipboard-check-outline', label: 'Chờ xác nhận', color: '#3b82f6', bg: '#eff6ff', status: 'pending' },
@@ -47,11 +51,16 @@ const BuyerAccountScreen: React.FC = () => {
         </View>
 
         <View style={styles.profileCard}>
-          <View style={styles.avatar} />
+          <View style={styles.avatarContainer}>
+            <View style={styles.avatarPlaceholder}>
+              <Ionicons name="person" size={32} color="#cbd5e1" />
+            </View>
+          </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.name}>nguyenan110***</Text>
+            <Text style={styles.name}>{profile?.name || 'Người dùng'}</Text>
+            <Text style={styles.email}>{profile?.email || 'Chưa cập nhật email'}</Text>
             <View style={styles.memberBadge}>
-              <Ionicons name="medal-outline" size={12} color="#6b7280" />
+              <Ionicons name="medal-outline" size={12} color="#F73658" />
               <Text style={styles.memberText}>THÀNH VIÊN BẠC</Text>
             </View>
           </View>
@@ -82,10 +91,10 @@ const BuyerAccountScreen: React.FC = () => {
 
         <View style={styles.section}>
           <Text style={styles.sectionTitle}>TÀI KHOẢN</Text>
-          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile-edit' as any)}>
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/profile-view' as any)}>
             <View style={styles.menuLeft}>
-              <Ionicons name="create-outline" size={20} color="#3b82f6" />
-              <Text style={styles.menuText}>Chỉnh sửa thông tin</Text>
+              <Ionicons name="person-outline" size={20} color="#3b82f6" />
+              <Text style={styles.menuText}>Thông tin cá nhân</Text>
             </View>
             <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
           </TouchableOpacity>
@@ -175,49 +184,71 @@ const styles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
   },
   headerTitle: {
-    fontSize: 36,
-    fontWeight: '800',
-    color: '#111827',
-  },
-  profileCard: {
-    marginTop: 8,
-    backgroundColor: '#fff',
-    padding: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  avatar: {
-    width: 72,
-    height: 72,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: '#60a5fa',
-    backgroundColor: '#fca5a5',
-  },
-  profileInfo: {
-    marginLeft: 12,
-    flex: 1,
-  },
-  name: {
-    fontSize: 26,
+    fontSize: 24,
     fontWeight: '700',
     color: '#111827',
   },
+  profileCard: {
+    marginTop: 12,
+    backgroundColor: '#fff',
+    padding: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginHorizontal: 16,
+    borderRadius: 16,
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+  },
+  avatarContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#f8f9fa',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: '#fff',
+  },
+  avatarPlaceholder: {
+    width: '100%',
+    height: '100%',
+    borderRadius: 32,
+    backgroundColor: '#f1f5f9',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfo: {
+    marginLeft: 16,
+    flex: 1,
+  },
+  name: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#111827',
+    marginBottom: 2,
+  },
+  email: {
+    fontSize: 13,
+    color: '#64748b',
+    marginBottom: 6,
+  },
   memberBadge: {
-    marginTop: 6,
     alignSelf: 'flex-start',
-    backgroundColor: '#f3f4f6',
+    backgroundColor: '#FFF1F3',
     paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 4,
+    paddingVertical: 3,
+    borderRadius: 6,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
   },
   memberText: {
-    fontSize: 11,
+    fontSize: 10,
     fontWeight: '700',
-    color: '#6b7280',
+    color: '#F73658',
   },
   section: {
     marginTop: 10,
@@ -232,8 +263,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
   },
   sectionTitle: {
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 16,
+    fontWeight: '700',
     color: '#111827',
     paddingHorizontal: 16,
     paddingBottom: 10,

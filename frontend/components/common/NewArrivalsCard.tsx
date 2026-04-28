@@ -32,7 +32,7 @@ const NewArrivalsCard: React.FC<NewArrivalsCardProps> = ({
           <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
         <TouchableOpacity style={styles.viewAllButton} onPress={onViewAll}>
-          <Text style={styles.viewAllText}>View all</Text>
+          <Text style={styles.viewAllText}>Xem tất cả</Text>
           <Feather name="arrow-right" size={14} color="white" />
         </TouchableOpacity>
       </View>

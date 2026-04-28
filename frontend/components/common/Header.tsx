@@ -1,53 +1,35 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
+import { Feather, Ionicons } from '@expo/vector-icons';
 
 interface HeaderProps {
   onMenuPress?: () => void;
   onProfilePress?: () => void;
   onMessagePress?: () => void;
-  logoText?: string;
+  userName?: string;
+  avatarUrl?: string | null;
 }
 
 const Header: React.FC<HeaderProps> = ({ 
   onMenuPress, 
   onProfilePress, 
   onMessagePress,
-  logoText = "ShopeeLite" 
 }) => {
   return (
-    <View style={styles.container}>
-      <TouchableOpacity style={styles.menuButton} onPress={onMenuPress}>
-        <View style={styles.menuIconLine} />
-        <View style={[styles.menuIconLine, { width: 15 }]} />
-        <View style={styles.menuIconLine} />
-      </TouchableOpacity>
-
-      <View pointerEvents="none" style={styles.absoluteCenter}>
-        <View style={styles.logoContainer}>
-          <Image 
-            source={require('../../assets/images/homepage/icons/Component 1.svg')} 
-            style={styles.logoImage}
-            resizeMode="contain"
-          />
-          <Text style={styles.logoText}>{logoText}</Text>
+    <View style={styles.outerContainer}>
+      <View style={styles.container}>
+        <View style={styles.leftSection}>
+          <Text style={styles.logoText}>ShopeeLite</Text>
         </View>
-      </View>
 
-      <View style={styles.sideRight}>
-        <View style={styles.rightActions}>
-          <TouchableOpacity style={styles.messageButton} onPress={onMessagePress}>
-            <Feather name="message-circle" size={18} color="#333" />
+        <View style={styles.rightSection}>
+          <TouchableOpacity style={styles.iconButton} onPress={onMessagePress}>
+            <Feather name="message-circle" size={22} color="#1e293b" />
+            <View style={styles.badge} />
           </TouchableOpacity>
-
-          {onProfilePress ? (
-            <TouchableOpacity style={styles.profileButton} onPress={onProfilePress}>
-              <Image 
-                source={require('../../assets/images/homepage/icons/Ellipse 6.svg')} 
-                style={styles.profileImage}
-              />
-            </TouchableOpacity>
-          ) : null}
+          <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
+            <Ionicons name="notifications-outline" size={22} color="#1e293b" />
+          </TouchableOpacity>
         </View>
       </View>
     </View>
@@ -55,70 +37,43 @@ const Header: React.FC<HeaderProps> = ({
 };
 
 const styles = StyleSheet.create({
+  outerContainer: {
+    backgroundColor: 'transparent',
+    zIndex: 100,
+  },
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: '#F9F9F9',
-    position: 'relative',
+    paddingBottom: 12,
+    backgroundColor: '#fff',
   },
-  sideRight: {
-    width: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  absoluteCenter: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  menuButton: {
-    width: 32,
-    height: 32,
-    backgroundColor: '#EEEEEE',
-    borderRadius: 16,
-    justifyContent: 'center',
-    alignItems: 'center',
-    gap: 4,
-  },
-  menuIconLine: {
-    width: 18,
-    height: 2,
-    backgroundColor: '#333',
-    borderRadius: 1,
-  },
-  logoContainer: {
+  leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
-  },
-  logoImage: {
-    width: 32,
-    height: 32,
   },
   logoText: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: '#4392F9',
-    fontFamily: 'Montserrat_700Bold',
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#F73658',
+    letterSpacing: -0.5,
   },
-  rightActions: {
+  rightSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
-  messageButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#EEEEEE',
+  iconButton: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#fff',
     justifyContent: 'center',
     alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
   },
   profileButton: {
     width: 32,

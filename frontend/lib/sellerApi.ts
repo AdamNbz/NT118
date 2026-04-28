@@ -162,6 +162,19 @@ export const sellerApi = {
   },
 
   getRevenue: async (): Promise<SellerRevenue> => {
+    const token = await getAuthToken();
+    if (token?.startsWith('mock-')) {
+      return {
+        totalRevenue: 85240000,
+        monthly: [
+          { year: 2026, month: 1, revenue: 12500000 },
+          { year: 2026, month: 2, revenue: 15800000 },
+          { year: 2026, month: 3, revenue: 11200000 },
+          { year: 2026, month: 4, revenue: 19400000 },
+          { year: 2026, month: 5, revenue: 26340000 },
+        ]
+      };
+    }
     const response = await apiClient.get<SellerRevenue>('/api/seller/revenue');
     return response.data;
   },

@@ -1,6 +1,7 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, Text, View, StyleSheet } from 'react-native';
+import React, { useMemo } from 'react';
+import { Animated, Text, View, StyleSheet, TouchableOpacity } from 'react-native';
 import Svg, { Polyline } from 'react-native-svg';
+import { useRouter } from 'expo-router';
 import { SellerDashboardStats } from '../../../../lib/sellerApi';
 
 interface BusinessInsightsProps {
@@ -33,6 +34,8 @@ const Sparkline: React.FC<{ data: number[] }> = ({ data }) => {
 };
 
 const BusinessInsights: React.FC<BusinessInsightsProps> = ({ stats, loading = false }) => {
+  const router = useRouter();
+
   if (loading) {
     return (
       <View style={styles.section}>
@@ -81,8 +84,13 @@ const BusinessInsights: React.FC<BusinessInsightsProps> = ({ stats, loading = fa
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
-        <View style={styles.sectionIndicator} />
-        <Text style={styles.sectionTitle}>Thông tin kinh doanh</Text>
+        <View style={styles.headerLeft}>
+          <View style={styles.sectionIndicator} />
+          <Text style={styles.sectionTitle}>Thông tin kinh doanh</Text>
+        </View>
+        <TouchableOpacity onPress={() => router.push('/seller-revenue')}>
+          <Text style={styles.viewDetailText}>Xem chi tiết</Text>
+        </TouchableOpacity>
       </View>
 
       <View style={styles.grid}>
@@ -107,7 +115,12 @@ const styles = StyleSheet.create({
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'space-between',
     marginBottom: 12,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
   sectionIndicator: {
     width: 4,
@@ -120,6 +133,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '700',
     color: '#2c3e50',
+  },
+  viewDetailText: {
+    fontSize: 13,
+    color: '#3498db',
+    fontWeight: '600',
   },
   grid: {
     flexDirection: 'row',

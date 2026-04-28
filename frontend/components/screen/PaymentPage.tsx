@@ -30,6 +30,7 @@ export default function PaymentPage({ onClose, totalAmount, productId, quantity 
   const [cartItems, setCartItems] = useState<CheckoutCartItem[]>([]);
   const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
   const [isLoadingData, setIsLoadingData] = useState(true);
+  const [editingAddressId, setEditingAddressId] = useState<number | undefined>(undefined);
 
   const fetchAddress = async () => {
     try {
@@ -162,7 +163,14 @@ export default function PaymentPage({ onClose, totalAmount, productId, quantity 
           setSelectedAddress(address);
           setActiveScreen('payment');
         }}
-        onAddNewRequest={() => setActiveScreen('add_address')}
+        onAddNewRequest={() => {
+          setEditingAddressId(undefined);
+          setActiveScreen('add_address');
+        }}
+        onEditRequest={(id) => {
+          setEditingAddressId(id);
+          setActiveScreen('add_address');
+        }}
         currentAddressId={selectedAddress?.id}
       />
     );
@@ -171,9 +179,14 @@ export default function PaymentPage({ onClose, totalAmount, productId, quantity 
   if (activeScreen === 'add_address') {
     return (
       <AddAddressPage 
-        onBack={() => setActiveScreen('address_selection')}
+        addressId={editingAddressId}
+        onBack={() => {
+          setEditingAddressId(undefined);
+          setActiveScreen('address_selection');
+        }}
         onSuccess={() => {
-          // When address is successfully added, we switch back to selection and re-fetch the list
+          setEditingAddressId(undefined);
+          // When address is successfully added/updated, we switch back to selection and re-fetch the list
           setActiveScreen('address_selection');
           fetchAddress();
         }}

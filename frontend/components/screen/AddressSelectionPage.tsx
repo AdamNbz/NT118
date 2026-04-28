@@ -2,25 +2,24 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { UserAddressType } from '../common/PaymentAddressSection';
-import { apiClient } from '../../lib/apiClient';
+import { userApi, UserAddressDTO } from '../../lib/userApi';
 
 interface AddressSelectionPageProps {
   onBack: () => void;
-  onSelectAddress: (address: UserAddressType) => void;
+  onSelectAddress: (address: UserAddressDTO) => void;
   onAddNewRequest: () => void;
+  onEditRequest: (id: number) => void;
   currentAddressId?: number;
 }
 
-export default function AddressSelectionPage({ onBack, onSelectAddress, onAddNewRequest, currentAddressId }: AddressSelectionPageProps) {
-  const [addresses, setAddresses] = useState<UserAddressType[]>([]);
+export default function AddressSelectionPage({ onBack, onSelectAddress, onAddNewRequest, onEditRequest, currentAddressId }: AddressSelectionPageProps) {
+  const [addresses, setAddresses] = useState<UserAddressDTO[]>([]);
   const [loading, setLoading] = useState(true);
 
   const fetchAddresses = async () => {
     try {
       setLoading(true);
-      const response = await apiClient.get('/api/user/addresses');
-      const data = response.data?.data || response.data;
+      const data = await userApi.getAddresses();
       setAddresses(data || []);
     } catch (error) {
       console.log('Error fetching addresses:', error);
@@ -33,26 +32,15 @@ export default function AddressSelectionPage({ onBack, onSelectAddress, onAddNew
     fetchAddresses();
   }, []);
 
-  const setDefaultAndSelect = async (address: UserAddressType) => {
+  const setDefaultAndSelect = async (address: UserAddressDTO) => {
     try {
       setLoading(true);
-      await apiClient.put(`/api/user/addresses/${address.id}`, {
-        recipientName: address.recipientName,
-        recipientPhone: address.recipientPhone,
-        province: address.province,
-        district: address.district,
-        ward: address.ward,
-        streetAddress: address.streetAddress,
-        latitude: address.latitude ?? null,
-        longitude: address.longitude ?? null,
-        poiName: address.poiName ?? null,
-        formattedAddress: address.formattedAddress ?? null,
+      await userApi.updateAddress(address.id, {
+        ...address,
         isDefault: true,
       });
 
-      const response = await apiClient.get('/api/user/addresses');
-      const data = response.data?.data || response.data;
-      const next: UserAddressType[] = data || [];
+      const next = await userApi.getAddresses();
       setAddresses(next);
       const picked = next.find(x => x.id === address.id) || next[0] || address;
       onSelectAddress(picked);
@@ -64,7 +52,7 @@ export default function AddressSelectionPage({ onBack, onSelectAddress, onAddNew
     }
   };
 
-  const renderItem = ({ item }: { item: UserAddressType }) => {
+  const renderItem = ({ item }: { item: UserAddressDTO }) => {
     const isSelected = item.id === currentAddressId;
 
     return (
@@ -92,7 +80,7 @@ export default function AddressSelectionPage({ onBack, onSelectAddress, onAddNew
             </View>
           )}
         </View>
-        <TouchableOpacity style={styles.editButton}>
+        <TouchableOpacity style={styles.editButton} onPress={() => onEditRequest(item.id)}>
           <Text style={styles.editText}>Sửa</Text>
         </TouchableOpacity>
       </TouchableOpacity>

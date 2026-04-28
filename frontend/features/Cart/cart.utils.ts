@@ -1,4 +1,43 @@
-import { CartSectionType, CartSummaryType } from './cart.types';
+import { UserCartItemResponse } from '../../lib/cartApi';
+import { CartSectionType, CartSummaryType, CartItemType } from './cart.types';
+import { MOCK_PRODUCTS, MOCK_SHOPS } from '../../lib/mockData';
+
+export const mapBackendCartToSections = (items: UserCartItemResponse[]): CartSectionType[] => {
+  if (items.length === 0) return [];
+  
+  const grouped = items.reduce((acc, item) => {
+    const product = MOCK_PRODUCTS.find(p => p.id === item.productId);
+    const shopId = product?.shopId?.toString() || 'shopeelite-mall';
+    
+    // Find shop name from MOCK_SHOPS based on ownerId (which matches product.shopId in this mock)
+    const shop = MOCK_SHOPS.find(s => s.ownerId === product?.shopId);
+    const shopName = shop?.name || 'ShopeeLite Mall';
+
+    if (!acc[shopId]) {
+      acc[acc[shopId] ? shopId : shopId] = {
+        shopId,
+        shopName,
+        checked: true,
+        items: []
+      };
+    }
+    
+    acc[shopId].items.push({
+      id: item.id.toString(),
+      productId: item.productId.toString(),
+      name: item.productName,
+      image: item.mainImageUrl || 'https://picsum.photos/200',
+      variant: item.variantName ? `Phân loại: ${item.variantValue}` : undefined,
+      price: item.unitPrice,
+      quantity: item.quantity,
+      checked: true,
+    });
+    
+    return acc;
+  }, {} as Record<string, CartSectionType>);
+
+  return Object.values(grouped);
+};
 
 export const formatPrice = (value: number) => {
   return `₫${value.toLocaleString('vi-VN')}`;

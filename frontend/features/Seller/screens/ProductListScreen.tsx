@@ -49,13 +49,31 @@ const ProductListScreen: React.FC = () => {
   // ——— Handlers ———
   const handleSearch = (text: string) => setSearchQuery(text);
   const handleTabChange = (tab: FilterTab) => setActiveTab(tab);
+  
   const handleEdit = (product: Product) => {
-    // TODO: navigate to edit screen
-    console.log('Edit product:', product.id);
+    // Navigate to add product screen with ID to signify edit mode
+    router.push({
+      pathname: '/seller-add-product',
+      params: { id: product.id }
+    } as any);
   };
+
+  const handleMore = (product: Product) => {
+    import('react-native').then(({ Alert }) => {
+      Alert.alert(
+        'Tùy chọn',
+        `Bạn muốn thực hiện thao tác nào với "${product.name}"?`,
+        [
+          { text: 'Ẩn sản phẩm', onPress: () => console.log('Hide', product.id) },
+          { text: 'Xóa', style: 'destructive', onPress: () => console.log('Delete', product.id) },
+          { text: 'Đóng', style: 'cancel' },
+        ]
+      );
+    });
+  };
+
   const handleAddProduct = () => {
-    // TODO: navigate to create product screen
-    console.log('Add new product');
+    router.push('/seller-add-product' as any);
   };
 
   // ——— List header (Stats + Tabs) ———
@@ -87,7 +105,7 @@ const ProductListScreen: React.FC = () => {
         data={filteredProducts}
         keyExtractor={(item) => item.id}
         renderItem={({ item }) => (
-          <ProductCard product={item} onEdit={handleEdit} />
+          <ProductCard product={item} onEdit={handleEdit} onMore={handleMore} />
         )}
         ListHeaderComponent={renderListHeader}
         contentContainerStyle={styles.listContent}

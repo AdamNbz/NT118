@@ -1,6 +1,7 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 
 const { width } = Dimensions.get('window');
 
@@ -34,62 +35,78 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isFavorited,
   onToggleFavorite,
 }) => {
-  const cardWidth = isHorizontal ? 170 : isMasonry ? (width - 40) / 2 : (width - 48) / 2;
+  const cardWidth = isHorizontal ? 180 : (width - 40) / 2;
 
   return (
     <TouchableOpacity
       style={[
         styles.productCard,
-        isHorizontal && styles.horizontalCard,
-        isMasonry && { width: cardWidth, marginBottom: 12 }
+        isHorizontal ? styles.horizontalCard : { width: cardWidth },
+        isMasonry && { marginBottom: 12 }
       ]}
       onPress={() => onPress?.(product)}
       activeOpacity={0.9}
     >
       <View style={[
         styles.productImageContainer,
-        isMasonry && product.imageHeight ? { height: product.imageHeight } : {}
+        isMasonry && product.imageHeight ? { height: product.imageHeight } : { aspectRatio: 1 }
       ]}>
-        <Image source={product.image} style={styles.productImage} resizeMode="cover" />
+        <Image 
+          source={product.image} 
+          style={styles.productImage} 
+          contentFit="cover"
+          transition={300}
+          cachePolicy="disk"
+        />
+        
         {product.discount && (
           <View style={styles.discountBadge}>
             <Text style={styles.discountBadgeText}>{product.discount}</Text>
           </View>
         )}
+
+        <View style={styles.imageOverlay} />
+        
         {onToggleFavorite && (
           <TouchableOpacity
             style={styles.heartButton}
             onPress={(e) => { e.stopPropagation?.(); onToggleFavorite(product); }}
-            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
           >
             <Ionicons
               name={isFavorited ? 'heart' : 'heart-outline'}
-              size={18}
-              color={isFavorited ? '#F83758' : '#999'}
+              size={16}
+              color={isFavorited ? '#FF4D4F' : '#666'}
             />
           </TouchableOpacity>
         )}
       </View>
+
       <View style={styles.productInfo}>
-        <Text style={styles.productName} numberOfLines={2}>{product.name}</Text>
-        <Text style={styles.productPrice}>{product.price}</Text>
-        {product.originalPrice && (
-          <View style={styles.priceRow}>
-            <Text style={styles.originalPrice}>{product.originalPrice}</Text>
+        <Text style={styles.productName} numberOfLines={2}>
+          {product.name}
+        </Text>
+        
+        <View style={styles.priceContainer}>
+          <View style={styles.mainPrice}>
+            <Text style={styles.currencySymbol}>₫</Text>
+            <Text style={styles.productPrice}>
+              {product.price.replace('₫', '')}
+            </Text>
           </View>
-        )}
-        <View style={styles.ratingRow}>
-          <View style={styles.stars}>
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Ionicons
-                key={i}
-                name={i <= Math.floor(product.rating) ? "star" : i - 0.5 <= product.rating ? "star-half" : "star-outline"}
-                size={12}
-                color={i <= product.rating + 0.5 ? "#EDB310" : "#A8A8A9"}
-              />
-            ))}
+          {product.originalPrice && (
+            <Text style={styles.originalPrice}>
+              {product.originalPrice}
+            </Text>
+          )}
+        </View>
+
+        <View style={styles.footerRow}>
+          <View style={styles.ratingBox}>
+            <Ionicons name="star" size={10} color="#FFD700" />
+            <Text style={styles.ratingText}>{product.rating}</Text>
           </View>
-          <Text style={styles.reviewsText}>{product.reviews}</Text>
+          <View style={styles.divider} />
+          <Text style={styles.soldText}>{product.reviews}</Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -98,109 +115,134 @@ const ProductCard: React.FC<ProductCardProps> = ({
 
 const styles = StyleSheet.create({
   productCard: {
-    width: (width - 48) / 2,
-    backgroundColor: 'white',
-    borderRadius: 8,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
     marginBottom: 16,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: '#F3F4F6',
   },
   horizontalCard: {
-    width: 170,
+    width: 180,
     marginRight: 12,
-    marginBottom: 0,
+    marginBottom: 4,
   },
   productImageContainer: {
     width: '100%',
-    height: 128,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F9FAFB',
     position: 'relative',
   },
   productImage: {
     width: '100%',
     height: '100%',
   },
+  imageOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.02)',
+  },
   discountBadge: {
     position: 'absolute',
-    top: 6,
-    right: 6,
-    backgroundColor: '#F83758',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
+    top: 0,
+    right: 0,
+    backgroundColor: 'rgba(255, 77, 79, 0.9)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderBottomLeftRadius: 10,
+    zIndex: 2,
   },
   discountBadgeText: {
     color: '#FFFFFF',
-    fontSize: 9,
-    fontWeight: '600',
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
   },
   heartButton: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(255,255,255,0.9)',
-    borderRadius: 14,
-    width: 28,
-    height: 28,
+    bottom: 8,
+    right: 8,
+    backgroundColor: 'rgba(255,255,255,0.95)',
+    borderRadius: 15,
+    width: 30,
+    height: 30,
     justifyContent: 'center',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+    zIndex: 2,
   },
   productInfo: {
-    padding: 8,
+    padding: 10,
   },
   productName: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '500',
-    fontFamily: 'Montserrat_500Medium',
-    lineHeight: 16,
+    lineHeight: 18,
+    color: '#374151',
+    height: 36,
+    marginBottom: 6,
   },
-  productDesc: {
-    fontSize: 10,
-    color: '#676767',
-    marginTop: 4,
-    fontFamily: 'Montserrat_400Regular',
+  priceContainer: {
+    marginBottom: 8,
+    minHeight: 40,
+    justifyContent: 'center',
+  },
+  mainPrice: {
+    flexDirection: 'row',
+    alignItems: 'baseline',
+  },
+  currencySymbol: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#FF4D4F',
+    marginRight: 1,
   },
   productPrice: {
-    fontSize: 13,
+    fontSize: 15,
     fontWeight: '700',
-    marginTop: 6,
-    color: '#F83758',
-    fontFamily: 'Montserrat_600SemiBold',
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 2,
-    gap: 8,
+    color: '#EE4D2D',
   },
   originalPrice: {
-    fontSize: 10,
-    color: '#BBBBBB',
+    fontSize: 11,
+    color: '#999',
     textDecorationLine: 'line-through',
-    fontFamily: 'Montserrat_300Light',
+    marginTop: 1,
   },
-  discountText: {
-    fontSize: 10,
-    color: '#FE735C',
-    fontFamily: 'Montserrat_400Regular',
-  },
-  ratingRow: {
+  footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginTop: 6,
-    gap: 4,
   },
-  stars: {
+  ratingBox: {
     flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFFBEB',
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
   },
-  reviewsText: {
-    fontSize: 10,
-    color: '#A8A8A9',
-    fontFamily: 'Montserrat_400Regular',
+  ratingText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#D97706',
+    marginLeft: 3,
+  },
+  divider: {
+    width: 1,
+    height: 12,
+    backgroundColor: '#E5E7EB',
+    marginHorizontal: 8,
+  },
+  soldText: {
+    fontSize: 11,
+    color: '#6B7280',
+    fontWeight: '500',
   },
 });
 

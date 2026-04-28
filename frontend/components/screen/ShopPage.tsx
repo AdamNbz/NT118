@@ -1,165 +1,216 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Dimensions, Image, TouchableOpacity } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, StyleSheet, ScrollView, Dimensions, Image, TouchableOpacity, ActivityIndicator, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons, Feather } from '@expo/vector-icons';
-import SizeSelector from '../common/SizeSelector';
-import ActionButtons from '../common/ActionButtons';
-import ProductCard, { Product } from '../common/ProductCard';
+import { Ionicons, Feather, MaterialCommunityIcons } from '@expo/vector-icons';
+import { useRouter } from 'expo-router';
+import ProductCard from '../common/ProductCard';
+import { getShopById, getShopProducts, toggleFollowShop } from '../../lib/shopApi';
+import { ShopDTO } from '../../lib/mockData';
+import { ProductDTO, formatPriceFull, formatSold } from '../../lib/productApi';
 
 const { width } = Dimensions.get('window');
 
-const ShopPage = () => {
-  const [selectedSize, setSelectedSize] = React.useState('7 UK');
+interface ShopPageProps {
+  shopId: number;
+}
 
-  const relatedProducts: Product[] = [
-    {
-      id: 1,
-      name: 'NIke Sneakers',
-      description: 'Nike Air Jordan Retro 1 Low Mystic Black',
-      price: '₹1,900',
-      rating: 4.5,
-      reviews: '46,890',
-      image: require('../../assets/images/shop-page/img/unsplash_76w_eDO1u1E.svg'),
-    },
-    {
-      id: 2,
-      name: 'NIke Sneakers',
-      description: 'Mid Peach Mocha Shoes For Man White Black Pink S...',
-      price: '₹1,900',
-      rating: 4.5,
-      reviews: '2,56,890',
-      image: require('../../assets/images/shop-page/img/unsplash_mHUk4Se7peY.svg'),
-    },
-  ];
+const ShopPage: React.FC<ShopPageProps> = ({ shopId = 1 }) => {
+  const router = useRouter();
+  const [shop, setShop] = useState<ShopDTO | null>(null);
+  const [products, setProducts] = useState<ProductDTO[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [isFollowing, setIsFollowing] = useState(false);
+  const [activeTab, setActiveTab] = useState('all'); // 'main', 'all', 'categories'
+
+  useEffect(() => {
+    loadShopData();
+  }, [shopId]);
+
+  const loadShopData = async () => {
+    try {
+      setLoading(true);
+      const [shopData, productData] = await Promise.all([
+        getShopById(shopId),
+        getShopProducts(shopId)
+      ]);
+      setShop(shopData);
+      setProducts(productData);
+    } catch (err) {
+      console.error('Failed to load shop data:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleFollow = async () => {
+    const success = await toggleFollowShop(shopId, isFollowing);
+    if (success) {
+      setIsFollowing(!isFollowing);
+    }
+  };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#F83758" />
+        <Text style={styles.loadingText}>Đang tải thông tin cửa hàng...</Text>
+      </View>
+    );
+  }
+
+  if (!shop) {
+    return (
+      <View style={styles.errorContainer}>
+        <Ionicons name="alert-circle-outline" size={64} color="#CCC" />
+        <Text style={styles.errorText}>Không tìm thấy cửa hàng.</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
+          <Text style={styles.backButtonText}>Quay lại</Text>
+        </TouchableOpacity>
+      </View>
+    );
+  }
+
+  const formattedProducts = products.map(dto => ({
+    id: dto.id,
+    name: dto.name,
+    description: dto.description || '',
+    price: formatPriceFull(dto.price),
+    originalPrice: dto.originalPrice ? formatPriceFull(dto.originalPrice) : undefined,
+    discount: dto.discount > 0 ? `${dto.discount}% Off` : undefined,
+    rating: dto.rating,
+    reviews: formatSold(dto.soldQuantity),
+    image: dto.image ? { uri: dto.image } : require('../../assets/images/Group 34010.png'),
+    imageHeight: 180,
+  }));
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* Header Navigation */}
-        <View style={styles.header}>
-          <TouchableOpacity>
-            <Ionicons name="chevron-back" size={24} color="black" />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.cartIcon}>
-            <Feather name="shopping-cart" size={20} color="black" />
-          </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.headerIcon}>
+          <Ionicons name="arrow-back" size={24} color="#FFF" />
+        </TouchableOpacity>
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color="#999" />
+          <Text style={styles.searchText}>Tìm kiếm trong shop</Text>
         </View>
+        <TouchableOpacity style={styles.headerIcon}>
+          <Ionicons name="share-social-outline" size={24} color="#FFF" />
+        </TouchableOpacity>
+      </View>
 
-        {/* Product Image Carousel Placeholder */}
-        <View style={styles.imageContainer}>
-          <View style={styles.mainImagePlaceholder}>
-            <TouchableOpacity style={styles.nextButton}>
-              <Ionicons name="chevron-forward" size={24} color="black" />
+      <ScrollView stickyHeaderIndices={[2]} showsVerticalScrollIndicator={false}>
+        {/* Shop Info Card */}
+        <View style={styles.heroSection}>
+          <Image 
+            source={{ uri: shop.coverImageUrl || 'https://images.unsplash.com/photo-1557683316-973673baf926?q=80&w=1000' }} 
+            style={styles.coverImage} 
+          />
+          <View style={styles.overlay} />
+          
+          <View style={styles.shopMainInfo}>
+            <View style={styles.logoContainer}>
+              {shop.logoUrl ? (
+                <Image source={{ uri: shop.logoUrl }} style={styles.logo} />
+              ) : (
+                <Text style={styles.logoPlaceholder}>{shop.name[0]}</Text>
+              )}
+            </View>
+            <View style={styles.nameContainer}>
+              <View style={styles.nameRow}>
+                <Text style={styles.shopName}>{shop.name}</Text>
+                {shop.isVerified && (
+                  <MaterialCommunityIcons name="check-decagram" size={16} color="#4CC9F0" />
+                )}
+              </View>
+              <Text style={styles.onlineStatus}>Online 5 phút trước</Text>
+            </View>
+            <TouchableOpacity 
+              style={[styles.followButton, isFollowing && styles.followingButton]} 
+              onPress={handleFollow}
+            >
+              <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>
+                {isFollowing ? 'Đang Theo dõi' : '+ Theo dõi'}
+              </Text>
             </TouchableOpacity>
           </View>
-          {/* Pagination dots */}
-          <View style={styles.pagination}>
-            <View style={[styles.dot, styles.activeDot]} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-            <View style={styles.dot} />
-          </View>
-        </View>
 
-        {/* Size Selection */}
-        <SizeSelector
-          sizes={['6 UK', '7 UK', '8 UK', '9 UK', '10 UK']}
-          selectedSize={selectedSize}
-          onSizeSelect={setSelectedSize}
-        />
-
-        {/* Product Info */}
-        <View style={styles.productInfo}>
-          <Text style={styles.productTitle}>NIke Sneakers</Text>
-          <Text style={styles.productSubtitle}>Vision Alta Men’s Shoes Size (All Colours)</Text>
-          
-          <View style={styles.ratingRow}>
-            <View style={styles.stars}>
-              {[1, 2, 3, 4].map((i) => (
-                <Ionicons key={i} name="star" size={16} color="#EDB310" />
-              ))}
-              <Ionicons name="star-half" size={16} color="#BBBBBB" />
+          <View style={styles.statsRow}>
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{shop.rating}</Text>
+              <Text style={styles.statLabel}>Đánh giá</Text>
             </View>
-            <Text style={styles.reviewsText}>56,890</Text>
-          </View>
-
-          <View style={styles.priceRow}>
-            <Text style={styles.originalPrice}>₹2,999</Text>
-            <Text style={styles.currentPrice}>₹1,500</Text>
-            <Text style={styles.discountText}>50% Off</Text>
-          </View>
-
-          <View style={styles.detailsSection}>
-            <Text style={styles.sectionTitle}>Product Details</Text>
-            <Text style={styles.detailsText}>
-              Perhaps the most iconic sneaker of all-time, this original "Chicago"? colorway is the cornerstone to any sneaker collection. Made famous in 1985 by Michael Jordan, the shoe has stood the test of time, becoming the most famous colorway of the Air Jordan 1. This 2015 release saw the
-              <Text style={styles.moreText}> ...More</Text>
-            </Text>
-          </View>
-        </View>
-
-        {/* Store Info & Policy Chips */}
-        <View style={styles.chipsContainer}>
-          <View style={styles.chip}>
-            <Ionicons name="location-outline" size={14} color="#676767" />
-            <Text style={styles.chipText}>Nearest Store</Text>
-          </View>
-          <View style={styles.chip}>
-            <Ionicons name="lock-closed-outline" size={14} color="#676767" />
-            <Text style={styles.chipText}>VIP</Text>
-          </View>
-          <View style={styles.chip}>
-            <Ionicons name="refresh-outline" size={14} color="#676767" />
-            <Text style={styles.chipText}>Return policy</Text>
-          </View>
-        </View>
-
-        {/* Action Buttons */}
-        <ActionButtons 
-          onAddToCart={() => {}} 
-          onBuyNow={() => {}} 
-        />
-
-        {/* Delivery Info */}
-        <View style={styles.deliveryContainer}>
-          <View style={styles.deliveryCard}>
-            <Text style={styles.deliveryLabel}>Ngày giao hàng dự kiến</Text>
-            <Text style={styles.deliveryDate}>20/03 - 23/03</Text>
-          </View>
-        </View>
-
-        {/* Similar Products Button */}
-        <TouchableOpacity style={styles.similarButton}>
-          <Ionicons name="eye-outline" size={20} color="black" />
-          <Text style={styles.similarButtonText}>Sản phẩm tương tự</Text>
-        </TouchableOpacity>
-
-        {/* Recommendations Section */}
-        <View style={styles.recommendationHeader}>
-          <Text style={styles.recommendTitle}>Bạn có thể thích</Text>
-          <View style={styles.filterRow}>
-            <Text style={styles.countText}>282+ Sản phẩm</Text>
-            <View style={styles.actionButtonsRow}>
-              <TouchableOpacity style={styles.sortBtn}>
-                <Text style={styles.actionBtnText}>Sort</Text>
-                <Ionicons name="swap-vertical" size={14} color="black" />
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.sortBtn}>
-                <Text style={styles.actionBtnText}>Filter</Text>
-                <Ionicons name="filter" size={14} color="black" />
-              </TouchableOpacity>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>{shop.totalProducts}</Text>
+              <Text style={styles.statLabel}>Sản phẩm</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.statItem}>
+              <Text style={styles.statValue}>95%</Text>
+              <Text style={styles.statLabel}>Phản hồi</Text>
             </View>
           </View>
         </View>
 
-        {/* Related Products Grid */}
-        <View style={styles.relatedGrid}>
-          {relatedProducts.map(product => (
-            <ProductCard key={product.id} product={product} />
-          ))}
+        {/* Vouchers Row */}
+        <View style={styles.vouchersSection}>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vouchersScroll}>
+            {[20, 50, 100].map(val => (
+              <View key={val} style={styles.voucherCard}>
+                <View style={styles.voucherLeft}>
+                  <Text style={styles.voucherLabel}>Giảm</Text>
+                  <Text style={styles.voucherAmount}>{val}k</Text>
+                </View>
+                <TouchableOpacity style={styles.voucherRight}>
+                  <Text style={styles.voucherAction}>Lưu</Text>
+                </TouchableOpacity>
+              </View>
+            ))}
+          </ScrollView>
         </View>
+
+        {/* Tabs */}
+        <View style={styles.tabsContainer}>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'main' && styles.activeTab]} 
+            onPress={() => setActiveTab('main')}
+          >
+            <Text style={[styles.tabText, activeTab === 'main' && styles.activeTabText]}>Cửa hàng</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'all' && styles.activeTab]} 
+            onPress={() => setActiveTab('all')}
+          >
+            <Text style={[styles.tabText, activeTab === 'all' && styles.activeTabText]}>Tất cả sản phẩm</Text>
+          </TouchableOpacity>
+          <TouchableOpacity 
+            style={[styles.tab, activeTab === 'categories' && styles.activeTab]} 
+            onPress={() => setActiveTab('categories')}
+          >
+            <Text style={[styles.tabText, activeTab === 'categories' && styles.activeTabText]}>Danh mục</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Content */}
+        <View style={styles.content}>
+          <View style={styles.productsGrid}>
+            {formattedProducts.map(item => (
+              <ProductCard 
+                key={item.id} 
+                product={item as any} 
+                onPress={(p) => router.push(`/product/${p.id}` as any)}
+              />
+            ))}
+          </View>
+        </View>
+
+        <View style={{ height: 40 }} />
       </ScrollView>
+      
+      {/* Floating Chat Button */}
+      <TouchableOpacity style={styles.chatFab}>
+        <Ionicons name="chatbubble-ellipses" size={24} color="#FFF" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 };
@@ -167,243 +218,264 @@ const ShopPage = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#FDFDFD',
+    backgroundColor: '#F5F5F5',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+  },
+  loadingText: {
+    marginTop: 12,
+    color: '#666',
+  },
+  errorContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 40,
+  },
+  errorText: {
+    fontSize: 16,
+    color: '#666',
+    marginVertical: 20,
+  },
+  backButton: {
+    paddingHorizontal: 30,
+    paddingVertical: 10,
+    backgroundColor: '#F83758',
+    borderRadius: 20,
+  },
+  backButtonText: {
+    color: '#FFF',
+    fontWeight: 'bold',
   },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    backgroundColor: '#F83758',
+    gap: 12,
+  },
+  headerIcon: {
+    padding: 4,
+  },
+  searchBar: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    height: 36,
+    borderRadius: 4,
+    paddingHorizontal: 10,
+    gap: 8,
+  },
+  searchText: {
+    color: '#EEE',
+    fontSize: 13,
+  },
+  heroSection: {
+    height: 180,
+    position: 'relative',
+    backgroundColor: '#333',
+  },
+  coverImage: {
+    ...StyleSheet.absoluteFillObject,
+    opacity: 0.6,
+  },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.3)',
+  },
+  shopMainInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingHorizontal: 16,
+    paddingTop: 40,
+    gap: 12,
+  },
+  logoContainer: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: '#FFF',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(255,255,255,0.5)',
+  },
+  logo: {
+    width: '100%',
+    height: '100%',
+  },
+  logoPlaceholder: {
+    fontSize: 24,
+    fontWeight: 'bold',
+    color: '#F83758',
+  },
+  nameContainer: {
+    flex: 1,
+  },
+  nameRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  shopName: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  onlineStatus: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.8)',
+    marginTop: 2,
+  },
+  followButton: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderWidth: 1,
+    borderColor: '#FFF',
+    borderRadius: 4,
+  },
+  followingButton: {
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    borderColor: 'transparent',
+  },
+  followButtonText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  followingButtonText: {
+    color: '#DDD',
+  },
+  statsRow: {
+    flexDirection: 'row',
+    position: 'absolute',
+    bottom: 12,
+    left: 16,
+    right: 16,
+    gap: 16,
+  },
+  statItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  statValue: {
+    fontSize: 13,
+    fontWeight: 'bold',
+    color: '#FFF',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: 'rgba(255,255,255,0.7)',
+  },
+  statDivider: {
+    width: 1,
+    height: 10,
+    backgroundColor: 'rgba(255,255,255,0.3)',
+    alignSelf: 'center',
+  },
+  vouchersSection: {
+    backgroundColor: '#FFF',
     paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
   },
-  cartIcon: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: '#F3F4F6',
+  vouchersScroll: {
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  voucherCard: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF8F9',
+    borderWidth: 1,
+    borderColor: '#F83758',
+    borderRadius: 4,
+    height: 50,
+  },
+  voucherLeft: {
+    paddingHorizontal: 10,
     justifyContent: 'center',
     alignItems: 'center',
+    borderRightWidth: 1,
+    borderRightColor: '#F83758',
+    borderStyle: 'dashed',
   },
-  imageContainer: {
-    alignItems: 'center',
-    marginTop: 8,
+  voucherLabel: {
+    fontSize: 9,
+    color: '#F83758',
   },
-  mainImagePlaceholder: {
-    width: width - 32,
-    height: 213,
-    backgroundColor: '#E5E7EB',
-    borderRadius: 16,
+  voucherAmount: {
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#F83758',
+  },
+  voucherRight: {
+    paddingHorizontal: 12,
     justifyContent: 'center',
-    alignItems: 'flex-end',
-    paddingRight: 12,
+    backgroundColor: '#F83758',
   },
-  nextButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.8)',
-    justifyContent: 'center',
-    alignItems: 'center',
+  voucherAction: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: 'bold',
+  },
+  tabsContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#FFF',
+    elevation: 2,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowRadius: 2,
   },
-  pagination: {
-    flexDirection: 'row',
-    marginTop: 12,
-    gap: 4,
-  },
-  dot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
-    backgroundColor: '#E5E7EB',
-  },
-  activeDot: {
-    backgroundColor: '#F73658',
-    width: 10,
-  },
-  productInfo: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  productTitle: {
-    fontSize: 20,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#000',
-  },
-  productSubtitle: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#000',
-    marginTop: 4,
-  },
-  ratingRow: {
-    flexDirection: 'row',
+  tab: {
+    flex: 1,
+    paddingVertical: 12,
     alignItems: 'center',
-    marginTop: 8,
-    gap: 8,
+    borderBottomWidth: 2,
+    borderBottomColor: 'transparent',
   },
-  stars: {
-    flexDirection: 'row',
+  activeTab: {
+    borderBottomColor: '#F83758',
   },
-  reviewsText: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#6B7280',
+  tabText: {
+    fontSize: 13,
+    color: '#666',
   },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-    gap: 12,
+  activeTabText: {
+    color: '#F83758',
+    fontWeight: 'bold',
   },
-  originalPrice: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#6B7280',
-    textDecorationLine: 'line-through',
+  content: {
+    padding: 8,
   },
-  currentPrice: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#000',
-  },
-  discountText: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#F97189',
-  },
-  detailsSection: {
-    marginTop: 16,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#000',
-    marginBottom: 4,
-  },
-  detailsText: {
-    fontSize: 12,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#000',
-    lineHeight: 16,
-  },
-  moreText: {
-    color: '#F97189',
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    marginTop: 16,
-    gap: 8,
-  },
-  chip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderWidth: 1,
-    borderColor: '#D1D5DB',
-    borderRadius: 4,
-    paddingHorizontal: 6,
-    paddingVertical: 4,
-    gap: 4,
-  },
-  chipText: {
-    fontSize: 10,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#6B7280',
-  },
-  deliveryContainer: {
-    paddingHorizontal: 16,
-    marginTop: 16,
-  },
-  deliveryCard: {
-    backgroundColor: '#FFCCD4',
-    borderRadius: 5,
-    padding: 12,
-  },
-  deliveryLabel: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#000',
-  },
-  deliveryDate: {
-    fontSize: 20,
-    fontFamily: 'Montserrat_600SemiBold', // Fallback for Poppins
-    color: '#000',
-    marginTop: 8,
-    textAlign: 'right',
-  },
-  similarButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    marginTop: 16,
-    paddingHorizontal: 16,
-    height: 48,
-    borderRadius: 8,
-    borderWidth: 0.5,
-    borderColor: '#D1D5DB',
-    backgroundColor: 'white',
-    gap: 8,
-  },
-  similarButtonText: {
-    fontSize: 14,
-    fontFamily: 'Montserrat_500Medium',
-    color: '#000',
-  },
-  recommendationHeader: {
-    paddingHorizontal: 16,
-    marginTop: 24,
-  },
-  recommendTitle: {
-    fontSize: 20,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#000',
-  },
-  filterRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  countText: {
-    fontSize: 18,
-    fontFamily: 'Montserrat_600SemiBold',
-    color: '#000',
-  },
-  actionButtonsRow: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  sortBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: 'white',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 6,
-    gap: 4,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 16,
-    elevation: 2,
-  },
-  actionBtnText: {
-    fontSize: 12,
-    fontFamily: 'Montserrat_400Regular',
-    color: '#000',
-  },
-  relatedGrid: {
+  productsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    paddingHorizontal: 16,
     justifyContent: 'space-between',
-    marginTop: 16,
-    paddingBottom: 40,
+  },
+  chatFab: {
+    position: 'absolute',
+    right: 20,
+    bottom: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: '#F83758',
+    justifyContent: 'center',
+    alignItems: 'center',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
   },
 });
 

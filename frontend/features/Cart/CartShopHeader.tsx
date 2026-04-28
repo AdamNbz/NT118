@@ -1,11 +1,19 @@
-import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useState } from 'react';
+import { Pressable, StyleSheet, Text, View, Alert } from 'react-native';
+import { Feather } from '@expo/vector-icons';
+import Animated, { 
+  useAnimatedStyle, 
+  withTiming, 
+  useSharedValue,
+  interpolate,
+} from 'react-native-reanimated';
 
 type CartShopHeaderProps = {
   checked: boolean;
   shopName: string;
   onToggle?: () => void;
   onPressShop?: () => void;
+  onDeleteShop?: () => void;
 };
 
 export default function CartShopHeader({
@@ -13,7 +21,45 @@ export default function CartShopHeader({
   shopName,
   onToggle,
   onPressShop,
+  onDeleteShop,
 }: CartShopHeaderProps) {
+  const [showDelete, setShowDelete] = useState(false);
+  const anim = useSharedValue(0);
+
+  const toggleDelete = () => {
+    const nextState = !showDelete;
+    setShowDelete(nextState);
+    anim.value = withTiming(nextState ? 1 : 0, { duration: 300 });
+  };
+
+  const handleDelete = () => {
+    Alert.alert(
+      'Xóa shop',
+      `Bạn có chắc muốn xóa toàn bộ sản phẩm của ${shopName} khỏi giỏ hàng?`,
+      [
+        { text: 'Hủy', style: 'cancel', onPress: () => toggleDelete() },
+        { 
+          text: 'Xóa', 
+          style: 'destructive', 
+          onPress: () => {
+            onDeleteShop?.();
+            toggleDelete();
+          } 
+        },
+      ]
+    );
+  };
+
+  const deleteBtnStyle = useAnimatedStyle(() => {
+    return {
+      width: interpolate(anim.value, [0, 1], [0, 70]),
+      opacity: anim.value,
+      transform: [
+        { translateX: interpolate(anim.value, [0, 1], [20, 0]) }
+      ]
+    };
+  });
+
   return (
     <View style={styles.container}>
       <Pressable
@@ -28,8 +74,23 @@ export default function CartShopHeader({
         <Text style={styles.shopName} numberOfLines={1}>
           {shopName}
         </Text>
-        <Text style={styles.arrow}>{'>'}</Text>
       </Pressable>
+
+      <View style={styles.rightActions}>
+        <Animated.View style={[styles.deleteBtnWrapper, deleteBtnStyle]}>
+          <Pressable style={styles.deleteBtn} onPress={handleDelete}>
+            <Text style={styles.deleteText}>Xóa</Text>
+          </Pressable>
+        </Animated.View>
+
+        <Pressable style={styles.moreBtn} onPress={toggleDelete}>
+          <Feather 
+            name={showDelete ? "x" : "more-vertical"} 
+            size={18} 
+            color="#9CA3AF" 
+          />
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -42,6 +103,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     paddingBottom: 8,
     backgroundColor: '#fff',
+    overflow: 'hidden',
   },
   checkbox: {
     width: 20,
@@ -86,9 +148,30 @@ const styles = StyleSheet.create({
     fontWeight: '600',
     color: '#111827',
   },
-  arrow: {
-    fontSize: 14,
-    color: '#9CA3AF',
-    marginLeft: 6,
+  rightActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
-});
+  moreBtn: {
+    padding: 4,
+    marginLeft: 4,
+    zIndex: 10,
+  },
+  deleteBtnWrapper: {
+    height: 30,
+    overflow: 'hidden',
+  },
+  deleteBtn: {
+    flex: 1,
+    backgroundColor: '#FF4747',
+    borderRadius: 15,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
+  },
+  deleteText: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+});

@@ -1,4 +1,25 @@
 import { apiClient } from './apiClient';
+import { MOCK_PRODUCTS } from './mockData';
+
+// Toggle to use mock data for testing
+const USE_MOCK = false;
+
+export interface ViewHistoryItemDTO {
+  productId: number;
+  productName: string;
+  productSlug: string;
+  mainImageUrl: string | null;
+  viewedAt: string;
+}
+
+export interface ProductVariantDTO {
+  id: number;
+  name: string; // e.g., "Màu sắc"
+  value: string; // e.g., "Xanh"
+  priceModifier: number;
+  stockQuantity: number;
+  sku?: string;
+}
 
 export interface ProductDTO {
   id: number;
@@ -19,6 +40,7 @@ export interface ProductDTO {
   thumbnails: string[];
   weightGrams?: number;
   dimensions?: string;
+  variants?: ProductVariantDTO[];
 }
 
 export interface PaginatedResponse<T> {
@@ -42,12 +64,9 @@ export interface ProductListParams {
 }
 
 /**
- * Format price in VND
+ * Format price in VND (Full digits)
  */
 export function formatPrice(price: number): string {
-  if (price >= 1_000_000) {
-    return `₫${(price / 1_000_000).toFixed(1)}tr`;
-  }
   return `₫${price.toLocaleString('vi-VN')}`;
 }
 
@@ -72,6 +91,31 @@ export function formatSold(sold: number): string {
  * Fetch paginated product list
  */
 export async function getProducts(params: ProductListParams = {}): Promise<PaginatedResponse<ProductDTO>> {
+  if (USE_MOCK) {
+    let filtered = [...MOCK_PRODUCTS];
+    if (params.q) {
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(params.q!.toLowerCase()));
+    }
+    if (params.categoryId) {
+      filtered = filtered.filter(p => p.categoryId === params.categoryId);
+    }
+    
+    // Simple mock pagination
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 20;
+    const items = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+    return {
+      data: items,
+      pagination: {
+        page,
+        pageSize,
+        total: filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize)
+      }
+    };
+  }
+
   const { category, sort, ...rest } = params;
   const queryParams: any = {
     ...rest,
@@ -105,6 +149,10 @@ export async function getProducts(params: ProductListParams = {}): Promise<Pagin
  * Fetch single product details
  */
 export async function getProductById(id: number): Promise<ProductDTO> {
+  if (USE_MOCK) {
+    const p = MOCK_PRODUCTS.find(x => x.id === id) || MOCK_PRODUCTS[0];
+    return p;
+  }
   const res = await apiClient.get(`/api/products/${id}`);
   const payload = res.data?.data || res.data;
   const images = payload.images || payload.Images || [];
@@ -116,7 +164,36 @@ export async function getProductById(id: number): Promise<ProductDTO> {
 }
 
 export async function getFeaturedProducts(limit: number = 10): Promise<ProductDTO[]> {
+  if (USE_MOCK) {
+    return MOCK_PRODUCTS.slice(0, limit);
+  }
   const params: ProductListParams = { page: 1, pageSize: limit, sort: 'rating' };
   const res = await getProducts(params);
   return res.data;
+}
+
+/**
+ * Fetch recently viewed products
+ */
+export async function getViewHistory(limit: number = 20): Promise<ViewHistoryItemDTO[]> {
+  if (USE_MOCK) {
+    return [
+      {
+        productId: 1,
+        productName: 'Sản phẩm mẫu 1',
+        productSlug: 'san-pham-mau-1',
+        mainImageUrl: 'https://via.placeholder.com/150',
+        viewedAt: new Date().toISOString(),
+      },
+      {
+        productId: 2,
+        productName: 'Sản phẩm mẫu 2',
+        productSlug: 'san-pham-mau-2',
+        mainImageUrl: 'https://via.placeholder.com/150',
+        viewedAt: new Date(Date.now() - 3600000).toISOString(),
+      }
+    ];
+  }
+  const res = await apiClient.get('/api/products/history', { params: { limit } });
+  return res.data?.data || res.data || [];
 }

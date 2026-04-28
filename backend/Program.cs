@@ -147,6 +147,9 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
+    // Create database if not exists
+    db.Database.EnsureCreated();
+
     // Create enums if they don't exist
     db.Database.ExecuteSqlRaw(@"
         DO $$ BEGIN
@@ -335,6 +338,7 @@ using (var scope = app.Services.CreateScope())
     {
         Console.WriteLine($"Error seeding address data: {ex.Message}");
     }
+
 
     // Create wishlist tables if they don't exist
     db.Database.ExecuteSqlRaw(@"

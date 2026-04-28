@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { View, Text, StyleSheet, TextInput, TouchableOpacity, ScrollView, Switch, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { apiClient } from '../../lib/apiClient';
+import { userApi, UserAddressDTO } from '../../lib/userApi';
 import AddressPickerModal from '../common/AddressPickerModal';
 import Map from './Map';
 import { forwardGeocodeNominatim, reverseGeocodeNominatim } from '../../lib/geocode';
@@ -10,9 +10,10 @@ import { forwardGeocodeNominatim, reverseGeocodeNominatim } from '../../lib/geoc
 interface AddAddressPageProps {
   onBack: () => void;
   onSuccess: () => void;
+  addressId?: number;
 }
 
-export default function AddAddressPage({ onBack, onSuccess }: AddAddressPageProps) {
+export default function AddAddressPage({ onBack, onSuccess, addressId }: AddAddressPageProps) {
   const [recipientName, setRecipientName] = useState('');
   const [recipientPhone, setRecipientPhone] = useState('');
   const [province, setProvince] = useState('');
@@ -38,6 +39,42 @@ export default function AddAddressPage({ onBack, onSuccess }: AddAddressPageProp
   const startFwdRequest = () => {
     fwdRequestSeq.current += 1;
     return fwdRequestSeq.current;
+  };
+
+  useEffect(() => {
+    if (addressId) {
+      loadAddress();
+    }
+  }, [addressId]);
+
+  const loadAddress = async () => {
+    if (!addressId) return;
+    try {
+      setLoading(true);
+      const addresses = await userApi.getAddresses();
+      const addr = addresses.find(a => a.id === addressId);
+      if (addr) {
+        setRecipientName(addr.recipientName);
+        setRecipientPhone(addr.recipientPhone);
+        setProvince(addr.province);
+        setDistrict(addr.district);
+        setWard(addr.ward);
+        setStreetAddress(addr.streetAddress);
+        setIsDefault(addr.isDefault);
+        setCoord({ 
+          latitude: addr.latitude || 10.844348, 
+          longitude: addr.longitude || 106.79374 
+        });
+        setPoiName(addr.poiName || null);
+        setFormattedAddress(addr.formattedAddress || null);
+        setCoordSource('manual');
+      }
+    } catch (error) {
+      console.error('Failed to load address:', error);
+      Alert.alert('Lỗi', 'Không thể tải thông tin địa chỉ.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -105,7 +142,7 @@ export default function AddAddressPage({ onBack, onSuccess }: AddAddressPageProp
 
     try {
       setLoading(true);
-      await apiClient.post('/api/user/addresses', {
+      const payload = {
         recipientName,
         recipientPhone,
         province,
@@ -114,10 +151,16 @@ export default function AddAddressPage({ onBack, onSuccess }: AddAddressPageProp
         streetAddress,
         latitude: coord.latitude,
         longitude: coord.longitude,
-        poiName,
-        formattedAddress,
+        poiName: poiName || undefined,
+        formattedAddress: formattedAddress || undefined,
         isDefault
-      });
+      };
+
+      if (addressId) {
+        await userApi.updateAddress(addressId, payload);
+      } else {
+        await userApi.addAddress(payload);
+      }
       onSuccess();
     } catch (error) {
       console.log('Save Address Error: ', error);
@@ -133,7 +176,7 @@ export default function AddAddressPage({ onBack, onSuccess }: AddAddressPageProp
         <TouchableOpacity style={styles.backButton} onPress={onBack}>
           <Ionicons name="arrow-back" size={26} color="#F83758" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Địa chỉ mới</Text>
+        <Text style={styles.headerTitle}>{addressId ? 'Chỉnh sửa địa chỉ' : 'Địa chỉ mới'}</Text>
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>

@@ -19,6 +19,7 @@ type CartSectionProps = {
   onDecreaseItem?: (shopId: string, itemId: string) => void;
   onPressItem?: (shopId: string, itemId: string) => void;
   onPressVoucher?: (shopId: string) => void;
+  onDeleteShop?: (shopId: string) => void;
 };
 
 export default function CartSection({
@@ -35,6 +36,7 @@ export default function CartSection({
   onDecreaseItem,
   onPressItem,
   onPressVoucher,
+  onDeleteShop,
 }: CartSectionProps) {
   return (
     <View style={styles.container}>
@@ -43,6 +45,7 @@ export default function CartSection({
         shopName={shopName}
         onToggle={() => onToggleShop?.(shopId)}
         onPressShop={() => onPressShop?.(shopId)}
+        onDeleteShop={() => onDeleteShop?.(shopId)}
       />
 
       <View style={styles.itemsWrap}>

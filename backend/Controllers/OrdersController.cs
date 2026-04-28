@@ -7,10 +7,12 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers;
 
+using Backend.Services;
+
 [ApiController]
 [Authorize]
 [Route("api/orders")]
-public class OrdersController(AppDbContext db) : ControllerBase
+public class OrdersController(AppDbContext db, INotificationRealtimeService notificationService) : ControllerBase
 {
     [HttpGet]
     public async Task<ActionResult<IReadOnlyList<object>>> GetMyOrders(CancellationToken cancellationToken)
@@ -57,8 +59,8 @@ public class OrdersController(AppDbContext db) : ControllerBase
                 x.DiscountAmount,
                 x.TotalAmount,
                 x.PaymentMethod,
-                x.PaymentStatus,
-                x.Status,
+                PaymentStatus = x.PaymentStatus.ToString(),
+                Status = x.Status.ToString(),
                 x.Notes,
                 x.OrderedAt,
             })
@@ -195,11 +197,35 @@ public class OrdersController(AppDbContext db) : ControllerBase
         db.Orders.Add(order);
         await db.SaveChangesAsync(cancellationToken);
 
+        // Now order.Id is populated by the database
         foreach (var item in orderItems)
             item.OrderId = order.Id;
-
         db.OrderItems.AddRange(orderItems);
+
+        var notification = new Notification
+        {
+            UserId = userId,
+            Type = "order_success",
+            Title = "Đặt hàng thành công",
+            MessageText = $"Đơn hàng {order.OrderNumber} của bạn đã được đặt thành công.",
+            Data = $"{{\"orderId\": {order.Id}}}",
+            IsRead = false,
+            CreatedAt = now
+        };
+        db.Notifications.Add(notification);
+
         await db.SaveChangesAsync(cancellationToken);
+
+        // trigger realtime notification
+        await notificationService.NotifyUserAsync(userId, new {
+            notification.Id,
+            notification.Type,
+            notification.Title,
+            message = notification.MessageText,
+            notification.Data,
+            notification.IsRead,
+            notification.CreatedAt
+        }, cancellationToken);
 
         return Ok(new { message = "Đặt hàng thành công.", order.Id, order.OrderNumber, order.TotalAmount });
     }

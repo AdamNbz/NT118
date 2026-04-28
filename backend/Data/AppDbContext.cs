@@ -457,5 +457,19 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(x => x.Product).WithMany().HasForeignKey(x => x.ProductId);
             e.HasIndex(x => new { x.CollectionId, x.ProductId }).IsUnique();
         });
+
+        modelBuilder.Entity<Notification>(e =>
+        {
+            e.ToTable("notifications");
+            e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasColumnName("id");
+            e.Property(x => x.UserId).HasColumnName("user_id");
+            e.Property(x => x.Type).HasColumnName("type").HasMaxLength(50);
+            e.Property(x => x.Title).HasColumnName("title").HasMaxLength(255);
+            e.Property(x => x.MessageText).HasColumnName("message");
+            e.Property(x => x.Data).HasColumnName("data").HasColumnType("jsonb");
+            e.Property(x => x.IsRead).HasColumnName("is_read");
+            e.Property(x => x.CreatedAt).HasColumnName("created_at");
+        });
     }
 }

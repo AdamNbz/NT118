@@ -1,86 +1,164 @@
-import { apiClient } from './apiClient';
-import { NotificationItemModel, NotificationType } from '../features/Notification/notification.types';
+import { useEffect, useRef, useCallback, useState } from 'react';
+import * as signalR from '@microsoft/signalr';
+import { apiClient, API_BASE_URL } from './apiClient';
+import { getAuthToken } from './authToken';
 
+// ── Backend response shape ──────────────────────────────────────────
 export interface BackendNotification {
   id: number;
   type: string;
   title: string;
-  message: string;
+  message: string | null;
   data: string | null;
   isRead: boolean;
   createdAt: string;
 }
 
-const mapBackendTypeToFrontend = (type: string): NotificationType => {
-  const upperType = type?.toUpperCase();
-  if (['ORDER', 'PROMO', 'NEWS', 'SYSTEM'].includes(upperType)) {
-    return upperType as NotificationType;
-  }
-  return 'SYSTEM';
-};
+// ── API calls ───────────────────────────────────────────────────────
+export async function fetchNotifications(unreadOnly = false): Promise<BackendNotification[]> {
+  const res = await apiClient.get('/api/notifications', { params: { unreadOnly } });
+  const data = res.data?.data || res.data;
+  return Array.isArray(data) ? data : [];
+}
 
-const getIconConfig = (type: NotificationType) => {
-  switch (type) {
-    case 'ORDER':
-      return { iconName: 'box' as const, bgColor: '#1E293B' };
-    case 'PROMO':
-      return { iconName: 'tag' as const, bgColor: '#EF4444' };
-    case 'NEWS':
-      return { iconName: 'cpu' as const, bgColor: '#0F172A' };
-    case 'SYSTEM':
-    default:
-      return { iconName: 'settings' as const, bgColor: '#64748B' };
-  }
-};
+export async function markNotificationRead(id: number): Promise<void> {
+  await apiClient.patch(`/api/notifications/${id}/read`);
+}
 
-const formatTime = (dateStr: string) => {
-  const date = new Date(dateStr);
-  const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
-  const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+export async function markAllNotificationsRead(): Promise<void> {
+  await apiClient.patch('/api/notifications/read-all');
+}
 
-  if (diffDays === 0) {
-    return `${date.getHours().toString().padStart(2, '0')}:${date.getMinutes().toString().padStart(2, '0')}`;
-  } else if (diffDays === 1) {
-    return 'Hôm qua';
-  } else if (diffDays < 7) {
-    const days = ['CN', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7'];
-    return days[date.getDay()];
-  } else {
-    return `${date.getDate()}/${date.getMonth() + 1}`;
-  }
-};
+export async function cleanupInvalidNotifications(): Promise<number> {
+  const res = await apiClient.delete('/api/notifications/cleanup');
+  const data = res.data?.data || res.data;
+  return data?.deleted ?? 0;
+}
 
-/**
- * Fetch notifications from the backend
- */
-export async function getNotifications(unreadOnly = false): Promise<NotificationItemModel[]> {
+// ── SignalR singleton ────────────────────────────────────────────────
+let sharedConnection: signalR.HubConnection | null = null;
+let connectionRefCount = 0;
+const listeners: Set<(n: BackendNotification) => void> = new Set();
+
+async function ensureConnection() {
+  if (sharedConnection) return;
+
+  const token = await getAuthToken();
+  if (!token) return;
+
+  const conn = new signalR.HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL}/hubs/notifications`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect()
+    .build();
+
+  conn.on('notification.created', (n: BackendNotification) => {
+    listeners.forEach((cb) => cb(n));
+  });
+
   try {
-    const response = await apiClient.get<BackendNotification[]>('/api/notifications', {
-      params: { unreadOnly }
-    });
-
-    return response.data.map(item => {
-      const type = mapBackendTypeToFrontend(item.type);
-      const iconConfig = getIconConfig(type);
-      
-      const createdAt = new Date(item.createdAt);
-      const now = new Date();
-      const isOlder = (now.getTime() - createdAt.getTime()) > 24 * 60 * 60 * 1000;
-
-      return {
-        id: item.id.toString(),
-        type,
-        title: item.title,
-        description: item.message || '',
-        time: formatTime(item.createdAt),
-        isOlder,
-        ...iconConfig,
-        iconColor: '#fff',
-      };
-    });
-  } catch (error) {
-    console.error('Error fetching notifications:', error);
-    return []; // Return empty list on error for now, or could throw
+    await conn.start();
+    sharedConnection = conn;
+  } catch {
+    // silent — will auto-reconnect
   }
+}
+
+async function releaseConnection() {
+  if (sharedConnection) {
+    await sharedConnection.stop();
+    sharedConnection = null;
+  }
+}
+
+export function useNotificationSignalR(onNotification?: (n: BackendNotification) => void) {
+  const callbackRef = useRef(onNotification);
+  callbackRef.current = onNotification;
+
+  useEffect(() => {
+    if (!onNotification) return;
+
+    const cb = (n: BackendNotification) => callbackRef.current?.(n);
+    listeners.add(cb);
+    connectionRefCount++;
+
+    ensureConnection();
+
+    return () => {
+      listeners.delete(cb);
+      connectionRefCount--;
+      if (connectionRefCount <= 0) {
+        connectionRefCount = 0;
+        releaseConnection();
+      }
+    };
+  }, []);
+}
+
+// ── Shared notification state hook ──────────────────────────────────
+export function useNotifications() {
+  const [notifications, setNotifications] = useState<BackendNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [unreadCount, setUnreadCount] = useState(0);
+
+  const load = useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await fetchNotifications();
+      setNotifications(data);
+      setUnreadCount(data.filter((n) => !n.isRead).length);
+    } catch {
+      // silent
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadUnreadCount = useCallback(async () => {
+    try {
+      const data = await fetchNotifications(true);
+      setUnreadCount(data.length);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const handleRealtimeNotification = useCallback((n: BackendNotification) => {
+    setNotifications((prev) => [n, ...prev]);
+    setUnreadCount((prev) => prev + 1);
+  }, []);
+
+  const markRead = useCallback(async (id: number) => {
+    try {
+      await markNotificationRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
+      );
+      setUnreadCount((prev) => Math.max(0, prev - 1));
+    } catch {
+      // silent
+    }
+  }, []);
+
+  const markAllRead = useCallback(async () => {
+    try {
+      await markAllNotificationsRead();
+      setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+      setUnreadCount(0);
+    } catch {
+      // silent
+    }
+  }, []);
+
+  return {
+    notifications,
+    loading,
+    unreadCount,
+    load,
+    loadUnreadCount,
+    handleRealtimeNotification,
+    markRead,
+    markAllRead,
+  };
 }

@@ -11,42 +11,39 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { TabModel, NotificationItemModel } from './notification.types';
-import { TABS } from './notification.mock';
+import { TabModel, NotificationItemModel, toNotificationItem, TABS } from './notification.types';
+import { useNotifications, useNotificationSignalR } from '@/lib/notificationApi';
 import NotificationCard from './NotificationCard';
-import { getNotifications } from '../../lib/notificationApi';
+import { useRouter } from 'expo-router';
 
 export default function NotificationContent() {
-  const [activeTab, setActiveTab] = useState<string>('ORDER');
-  const [notifications, setNotifications] = useState<NotificationItemModel[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+  const router = useRouter();
+  const [activeTab, setActiveTab] = useState<string>('ALL');
+  const { notifications, loading, load, handleRealtimeNotification, markRead, markAllRead } = useNotifications();
 
-  const fetchNotifications = useCallback(async (showRefreshing = false) => {
-    if (showRefreshing) setIsRefreshing(true);
-    else setIsLoading(true);
+  // Fetch on mount
+  useEffect(() => { load(); }, [load]);
 
-    try {
-      const data = await getNotifications();
-      setNotifications(data);
-    } catch (error) {
-      console.error('Failed to fetch notifications:', error);
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }, []);
+  // SignalR realtime (shared with tab layout — only connect if not already)
+  useNotificationSignalR(handleRealtimeNotification);
 
-  useEffect(() => {
-    fetchNotifications();
-  }, [fetchNotifications]);
+  // Convert backend → UI models
+  const uiItems = useMemo(() => notifications.map(toNotificationItem), [notifications]);
 
   const filteredData = useMemo(() => {
-    return notifications.filter((item) => item.type === activeTab);
-  }, [activeTab, notifications]);
+    if (activeTab === 'ALL') return uiItems;
+    return uiItems.filter((item) => item.type === activeTab);
+  }, [uiItems, activeTab]);
 
   const recentNotifications = useMemo(() => filteredData.filter((i) => !i.isOlder), [filteredData]);
   const olderNotifications = useMemo(() => filteredData.filter((i) => i.isOlder), [filteredData]);
+
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await load();
+    setRefreshing(false);
+  }, [load]);
 
   const renderTab = (item: TabModel) => {
     const isActive = activeTab === item.id;
@@ -72,7 +69,7 @@ export default function NotificationContent() {
   );
 
   const renderContent = () => {
-    if (isLoading && !isRefreshing) {
+    if (loading && notifications.length === 0) {
       return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#FF4747" />
@@ -81,16 +78,7 @@ export default function NotificationContent() {
     }
 
     if (filteredData.length === 0) {
-      return (
-        <FlatList
-          data={[]}
-          renderItem={null}
-          ListEmptyComponent={renderEmptyState()}
-          refreshControl={
-            <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchNotifications(true)} colors={['#FF4747']} />
-          }
-        />
-      );
+      return renderEmptyState();
     }
 
     const listData: any[] = [];
@@ -114,12 +102,35 @@ export default function NotificationContent() {
               </View>
             );
           }
-          return <NotificationCard item={item} />;
+          return (
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={() => {
+                if (!item.isRead) markRead(item.backendId);
+                // Navigate to order detail if ORDER type with orderId in data
+                if (item.type === 'ORDER' && item.rawData) {
+                  try {
+                    const parsed = JSON.parse(item.rawData);
+                    console.log('Notification rawData parsed:', parsed);
+                    if (parsed.orderId && parsed.orderId > 0) {
+                      router.push(`/order/${parsed.orderId}` as any);
+                    } else {
+                      console.log('No valid orderId in notification data:', item.rawData);
+                    }
+                  } catch (e) {
+                    console.log('Failed to parse notification rawData:', e, item.rawData);
+                  }
+                }
+              }}
+            >
+              <NotificationCard item={item} />
+            </TouchableOpacity>
+          );
         }}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={() => fetchNotifications(true)} colors={['#FF4747']} />
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#FF4747']} />
         }
       />
     );
@@ -127,6 +138,14 @@ export default function NotificationContent() {
 
   return (
     <SafeAreaView style={styles.container}>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Thông báo</Text>
+        <TouchableOpacity onPress={markAllRead}>
+          <Text style={styles.markAllText}>Đọc tất cả</Text>
+        </TouchableOpacity>
+      </View>
+
       {/* Tabs */}
       <View style={styles.tabsWrapper}>
         <ScrollView 
@@ -150,6 +169,24 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    backgroundColor: '#FFFFFF',
+  },
+  headerTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#1E293B',
+  },
+  markAllText: {
+    fontSize: 13,
+    color: '#FF4747',
+    fontWeight: '600',
   },
   tabsWrapper: {
     backgroundColor: '#FFFFFF',
@@ -184,6 +221,7 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
+    paddingTop: 80,
   },
   listContent: {
     paddingBottom: 24,

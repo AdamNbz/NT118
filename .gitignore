@@ -45,6 +45,8 @@ env/
 ############################
 bin/
 obj/
+publish/
+publish-sc/
 *.user
 *.suo
 *.userprefs

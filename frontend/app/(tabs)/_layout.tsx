@@ -5,9 +5,15 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
+import { useNotifications, useNotificationSignalR } from '@/lib/notificationApi';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
+  const { unreadCount, loadUnreadCount, handleRealtimeNotification } = useNotifications();
+
+  useNotificationSignalR(handleRealtimeNotification);
+
+  React.useEffect(() => { loadUnreadCount(); }, [loadUnreadCount]);
 
   return (
     <Tabs
@@ -58,12 +64,8 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ focused }) => (
             <View style={styles.cartButtonContainer}>
-              <View style={[styles.cartButton, focused && styles.cartButtonActive]}>
-                <Feather 
-                  name="shopping-cart" 
-                  size={24} 
-                  color={focused ? 'white' : 'black'} 
-                />
+              <View style={styles.cartButton}>
+                <Feather name="shopping-cart" size={24} color="black" />
               </View>
             </View>
           ),
@@ -74,7 +76,16 @@ export default function TabLayout() {
         options={{
           title: 'Thông báo',
           tabBarIcon: ({ color, focused }) => (
-            <Feather name="bell" size={24} color={focused ? '#FF4747' : color} />
+            <View>
+              <Feather name="bell" size={24} color={focused ? '#FF4747' : color} />
+              {unreadCount > 0 && (
+                <View style={styles.notifBadge}>
+                  <Text style={styles.notifBadgeText}>
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </Text>
+                </View>
+              )}
+            </View>
           ),
         }}
       />
@@ -116,9 +127,23 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#F2F2F2',
   },
-  cartButtonActive: {
+  notifBadge: {
+    position: 'absolute',
+    top: -6,
+    right: -10,
     backgroundColor: '#FF4747',
-    borderColor: '#FF4747',
-    transform: [{ scale: 1.1 }],
+    borderRadius: 10,
+    minWidth: 20,
+    height: 20,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 5,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  notifBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 10,
+    fontWeight: 'bold',
   },
 });

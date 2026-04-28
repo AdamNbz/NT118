@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Linking, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import PaymentAddressSection, { UserAddressType } from '../common/PaymentAddressSection';
@@ -10,21 +10,27 @@ import PaymentSummarySection from '../common/PaymentSummarySection';
 import PaymentBottomBar from '../common/PaymentBottomBar';
 import AddressSelectionPage from './AddressSelectionPage';
 import AddAddressPage from './AddAddressPage';
+import OrderSuccessPage from './OrderSuccessPage';
 import { apiClient } from '../../lib/apiClient';
 
 interface PaymentPageProps {
   onClose: () => void;
   totalAmount: number;
+  productId?: number;
+  quantity?: number;
 }
 
-type ScreenState = 'payment' | 'address_selection' | 'add_address';
+type ScreenState = 'payment' | 'address_selection' | 'add_address' | 'success';
 
-export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) {
+export default function PaymentPage({ onClose, totalAmount, productId, quantity }: PaymentPageProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenState>('payment');
   const [insuranceSelected, setInsuranceSelected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedAddress, setSelectedAddress] = useState<UserAddressType | null>(null);
   const [cartItems, setCartItems] = useState<CheckoutCartItem[]>([]);
+  const [paymentMethod, setPaymentMethod] = useState<'cod' | 'vnpay'>('cod');
+  const [isLoadingData, setIsLoadingData] = useState(true);
+  const [editingAddressId, setEditingAddressId] = useState<number | undefined>(undefined);
 
   const fetchAddress = async () => {
     try {
@@ -40,8 +46,28 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
   };
 
   const fetchCart = async () => {
+    if (productId && quantity) {
+      try {
+        const response = await apiClient.get(`/api/products/${productId}`);
+        const prod = response.data?.data || response.data;
+        if (prod) {
+          setCartItems([{
+            id: -1,
+            productId: prod.id,
+            productName: prod.name,
+            unitPrice: prod.price,
+            quantity: quantity,
+            mainImageUrl: prod.image,
+          }]);
+        }
+      } catch (error) {
+        console.log('Failed to fetch buy now product:', error);
+      }
+      return;
+    }
+
     try {
-      const response = await apiClient.get('/api/user/cart');
+      const response = await apiClient.get('/api/cart');
       const data = response.data?.data || response.data;
       setCartItems(Array.isArray(data) ? data : []);
     } catch (error) {
@@ -51,9 +77,13 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
   };
 
   useEffect(() => {
-    fetchAddress();
-    fetchCart();
-  }, []);
+    const loadData = async () => {
+      setIsLoadingData(true);
+      await Promise.all([fetchAddress(), fetchCart()]);
+      setIsLoadingData(false);
+    };
+    loadData();
+  }, [productId, quantity]);
 
   const totalQuantity = cartItems.reduce((sum, x) => sum + (x.quantity || 0), 0);
   const productPrice = cartItems.reduce((sum, x) => sum + (x.unitPrice || 0) * (x.quantity || 0), 0);
@@ -66,31 +96,60 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
   if (insuranceSelected) finalTotal += insurancePrice;
   const savings = Math.abs(shippingDiscount) + 20000;
 
-  const handleVNPayCheckout = async () => {
+  const handleCheckout = async () => {
     try {
       if (!selectedAddress) {
         Alert.alert("Lỗi", "Vui lòng thêm địa chỉ giao hàng trước khi thanh toán.");
         return;
       }
+      
+      if (!cartItems || cartItems.length === 0) {
+        Alert.alert("Lỗi", "Giỏ hàng của bạn đang trống.");
+        return;
+      }
 
       setIsProcessing(true);
-      const response = await apiClient.post('/api/payments/vnpay/create', {
-        amount: finalTotal,
-        orderId: 1, // Mock
-        currency: "VND",
-        paymentMethod: "vnpay"
-      });
-      
-      const payload = response.data?.data || response.data;
-      if (payload && payload.paymentUrl) {
-        await Linking.openURL(payload.paymentUrl);
-        onClose();
+
+      const payload = {
+        shippingAddressId: selectedAddress.id,
+        paymentMethod: paymentMethod,
+        items: cartItems.map((x) => ({
+          productId: x.productId,
+          variantId: x.variantId,
+          quantity: x.quantity,
+        })),
+      };
+
+      const orderRes = await apiClient.post('/api/orders', payload);
+      const orderData = orderRes.data?.data || orderRes.data;
+      const realOrderId = orderData.id || orderData.Id || 1;
+      const realTotalAmount = orderData.totalAmount || orderData.TotalAmount || finalTotal;
+
+      if (paymentMethod === 'cod') {
+        // order successful
+        setActiveScreen('success');
       } else {
-        throw new Error("Không thể lấy URL thanh toán từ server.");
+        const response = await apiClient.post('/api/payments/vnpay/create', {
+          amount: realTotalAmount,
+          orderId: realOrderId,
+          currency: "VND",
+          paymentMethod: "vnpay"
+        });
+        
+        const vnpayPayload = response.data?.data || response.data;
+        if (vnpayPayload && vnpayPayload.paymentUrl) {
+          setActiveScreen('success'); 
+          await Linking.openURL(vnpayPayload.paymentUrl);
+          // We intentionally do not close the stack here so that when the user 
+          // returns from the browser or bank app, they are greeted with the 
+          // 'Waiting for payment' ("Đang chờ thanh toán") screen.
+        } else {
+          throw new Error("Không thể lấy URL thanh toán từ server.");
+        }
       }
-    } catch (error) {
-      Alert.alert("Lỗi thanh toán", "Không thể tạo giao dịch VNPay lúc này.");
-      console.log(error);
+    } catch (error: any) {
+      Alert.alert("Lỗi thanh toán", "Không thể tạo giao dịch lúc này.");
+      console.log("Lỗi chi tiết:", error?.response?.data || error.message);
     } finally {
       setIsProcessing(false);
     }
@@ -104,7 +163,14 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
           setSelectedAddress(address);
           setActiveScreen('payment');
         }}
-        onAddNewRequest={() => setActiveScreen('add_address')}
+        onAddNewRequest={() => {
+          setEditingAddressId(undefined);
+          setActiveScreen('add_address');
+        }}
+        onEditRequest={(id) => {
+          setEditingAddressId(id);
+          setActiveScreen('add_address');
+        }}
         currentAddressId={selectedAddress?.id}
       />
     );
@@ -113,13 +179,37 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
   if (activeScreen === 'add_address') {
     return (
       <AddAddressPage 
-        onBack={() => setActiveScreen('address_selection')}
+        addressId={editingAddressId}
+        onBack={() => {
+          setEditingAddressId(undefined);
+          setActiveScreen('address_selection');
+        }}
         onSuccess={() => {
-          // When address is successfully added, we switch back to selection and re-fetch the list
+          setEditingAddressId(undefined);
+          // When address is successfully added/updated, we switch back to selection and re-fetch the list
           setActiveScreen('address_selection');
           fetchAddress();
         }}
       />
+    );
+  }
+
+  if (activeScreen === 'success') {
+    return (
+      <OrderSuccessPage 
+        isPendingPayment={paymentMethod === 'vnpay'}
+        cartItems={cartItems}
+        finalTotal={finalTotal}
+      />
+    );
+  }
+
+  if (isLoadingData) {
+    return (
+      <SafeAreaView style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color="#F83758" />
+        <Text style={{ marginTop: 12, color: '#666' }}>Đang tải thông tin thanh toán...</Text>
+      </SafeAreaView>
     );
   }
 
@@ -155,7 +245,10 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
             </View>
           </View>
 
-          <PaymentMethodSection />
+          <PaymentMethodSection 
+            selectedMethod={paymentMethod}
+            onSelectMethod={setPaymentMethod}
+          />
 
           <PaymentSummarySection 
             productPrice={productPrice}
@@ -170,7 +263,7 @@ export default function PaymentPage({ onClose, totalAmount }: PaymentPageProps) 
         <PaymentBottomBar 
           finalTotal={finalTotal}
           savings={savings}
-          onOrderPress={handleVNPayCheckout}
+          onOrderPress={handleCheckout}
           loading={isProcessing}
         />
 

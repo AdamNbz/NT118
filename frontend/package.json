@@ -12,7 +12,8 @@
     "web": "expo start --web",
     "lint": "expo lint",
     "adb:connect": "powershell -NoProfile -ExecutionPolicy Bypass -File ./scripts/adb-connect-ldplayer.ps1",
-    "dev:backend": "powershell -NoProfile -Command \"$conn = Get-NetTCPConnection -LocalPort 5058 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force; Start-Sleep -Milliseconds 300 }; Set-Location ../backend; dotnet run\"",
+    "dev:backend": "powershell -NoProfile -Command \"$conn = Get-NetTCPConnection -LocalPort 5058 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1; if ($conn) { Stop-Process -Id $conn.OwningProcess -Force; Start-Sleep -Milliseconds 300 }; Set-Location ../backend; if (-not (Test-Path ./publish-sc/backend.exe)) { dotnet publish -c Debug -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish-sc }; ./publish-sc/backend.exe\"",
+    "dev:backend:rebuild": "powershell -NoProfile -Command \"Set-Location ../backend; dotnet publish -c Debug -r win-x64 --self-contained true -p:PublishSingleFile=true -o ./publish-sc\"",
     "dev:chatbot": "cd ../ai-agentic/chatbot && python -m app.main",
     "dev:db": "docker-compose -f ../docker/docker-compose.yaml up -d",
     "dev:db:stop": "docker-compose -f ../docker/docker-compose.yaml down"
@@ -22,6 +23,7 @@
     "@expo-google-fonts/montserrat": "^0.4.2",
     "@expo-google-fonts/poppins": "^0.4.1",
     "@expo/vector-icons": "^15.0.3",
+    "@microsoft/signalr": "^10.0.0",
     "@react-navigation/bottom-tabs": "^7.4.0",
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",

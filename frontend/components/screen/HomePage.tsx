@@ -169,6 +169,13 @@ const HomePage = () => {
   };
 
   return (
+    <SafeAreaView style={styles.container}>
+      <ScrollView showsVerticalScrollIndicator={false}>
+        <Header 
+          onMessagePress={() => router.push('/chat')} 
+        />
+
+        <TouchableOpacity onPress={() => setIsSearchVisible(true)} activeOpacity={0.9}>
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <Header 

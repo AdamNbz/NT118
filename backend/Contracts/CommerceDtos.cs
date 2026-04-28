@@ -33,18 +33,34 @@ public record UpdateCategoryRequest(
     int SortOrder = 0,
     CategoryStatus Status = CategoryStatus.active);
 
-public record CreateOrderItemRequest(
-    [property: Range(1, long.MaxValue)] long ProductId,
-    long? VariantId,
-    [property: Range(1, 1000)] int Quantity);
+public class CreateOrderItemRequest
+{
+    [Range(1, long.MaxValue)]
+    public long ProductId { get; set; }
 
-public record CreateOrderRequest(
-    [property: Range(1, long.MaxValue)] long ShippingAddressId,
-    [property: Required, MinLength(1)]
-    IReadOnlyList<CreateOrderItemRequest> Items,
-    [property: MaxLength(50)] string? PaymentMethod,
-    [property: MaxLength(1000)] string? Notes,
-    [property: MaxLength(50)] string? VoucherCode);
+    public long? VariantId { get; set; }
+
+    [Range(1, 1000)]
+    public int Quantity { get; set; }
+}
+
+public class CreateOrderRequest
+{
+    [Range(1, long.MaxValue)]
+    public long ShippingAddressId { get; set; }
+
+    [Required, MinLength(1)]
+    public IReadOnlyList<CreateOrderItemRequest> Items { get; set; } = new List<CreateOrderItemRequest>();
+
+    [MaxLength(50)]
+    public string? PaymentMethod { get; set; }
+
+    [MaxLength(1000)]
+    public string? Notes { get; set; }
+
+    [MaxLength(50)]
+    public string? VoucherCode { get; set; }
+}
 
 public record UpdateOrderStatusRequest(OrderStatus Status);
 

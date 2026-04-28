@@ -9,6 +9,7 @@ export type CheckoutCartItem = {
   unitPrice: number;
   quantity: number;
   mainImageUrl?: string | null;
+  variantId?: number | null;
   variantName?: string | null;
   variantValue?: string | null;
 };

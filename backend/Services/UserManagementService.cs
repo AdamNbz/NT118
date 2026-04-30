@@ -106,6 +106,8 @@ public class UserManagementService(AppDbContext db) : IUserManagementService
             {
                 x.Id,
                 x.ProductId,
+                ShopId = x.Product.ShopId,
+                ShopName = x.Product.Shop.Name,
                 ProductName = x.Product.Name,
                 ProductSlug = x.Product.Slug,
                 x.Quantity,
@@ -137,6 +139,8 @@ public class UserManagementService(AppDbContext db) : IUserManagementService
         return rows.Select(x => new UserCartItemResponse(
             x.Id,
             x.ProductId,
+            x.ShopId,
+            x.ShopName,
             x.ProductName,
             x.ProductSlug,
             x.UnitPrice,

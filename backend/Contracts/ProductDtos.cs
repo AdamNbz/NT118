@@ -5,6 +5,7 @@ namespace Backend.Contracts;
 public record ProductQuery(
     [property: MaxLength(255)] string? Keyword,
     long? CategoryId,
+    long? ShopId,
     decimal? MinPrice,
     decimal? MaxPrice,
     [property: RegularExpression("^(price_asc|price_desc|rating|sold)?$")] string? Sort,

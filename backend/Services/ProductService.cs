@@ -217,6 +217,9 @@ public class ProductService(AppDbContext db) : IProductService
         if (query.CategoryId.HasValue)
             q = q.Where(x => x.CategoryId == query.CategoryId.Value);
 
+        if (query.ShopId.HasValue)
+            q = q.Where(x => x.ShopId == query.ShopId.Value);
+
         if (query.MinPrice.HasValue)
             q = q.Where(x => x.Price >= query.MinPrice.Value);
 

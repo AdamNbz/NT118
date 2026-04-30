@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIn
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { orderApi, OrderDetailDTO, OrderStatus } from '../../lib/orderApi';
+import { getOrderDetail, updateOrderStatus, OrderDetailResponse as OrderDetailDTO, OrderStatus } from '../../lib/orderApi';
 import { userApi } from '../../lib/userApi';
 
 const OrderDetailPage = () => {
@@ -19,7 +19,7 @@ const OrderDetailPage = () => {
     try {
       setLoading(true);
       const [detail, addresses] = await Promise.all([
-        orderApi.getOrderDetail(Number(id)),
+        getOrderDetail(Number(id)),
         userApi.getAddresses()
       ]);
       setData(detail);
@@ -43,7 +43,7 @@ const OrderDetailPage = () => {
   const handleUpdateStatus = async (status: OrderStatus, successMsg: string) => {
     try {
       setUpdating(true);
-      await orderApi.updateOrderStatus(Number(id), status);
+      await updateOrderStatus(Number(id), status);
       Alert.alert('Thành công', successMsg);
       fetchDetail();
     } catch (error) {

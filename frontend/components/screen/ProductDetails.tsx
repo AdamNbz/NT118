@@ -246,6 +246,30 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
 
         <View style={styles.divider} />
 
+        {/* Shop Info Section */}
+        {product.shopId && (
+          <>
+            <View style={styles.shopSection}>
+              <View style={styles.shopRow}>
+                <View style={styles.shopAvatar}>
+                  <Ionicons name="storefront-outline" size={24} color="#555" />
+                </View>
+                <View style={styles.shopInfo}>
+                  <Text style={styles.shopNameText}>Cửa hàng của sản phẩm</Text>
+                  <Text style={styles.shopActiveText}>Online 5 phút trước</Text>
+                </View>
+                <TouchableOpacity 
+                  style={styles.viewShopButton}
+                  onPress={() => router.push(`/shop/${product.shopId}` as any)}
+                >
+                  <Text style={styles.viewShopText}>Xem Shop</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+            <View style={styles.divider} />
+          </>
+        )}
+
         {/* Stock & Brand Info */}
         <View style={styles.variationSection}>
           {product.brand && (
@@ -526,10 +550,16 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
                   return;
                 }
 
+                let variantId: number | undefined;
+                if (product.variants && product.variants.length > 0) {
+                  const firstKey = Object.keys(selectedVariants)[0];
+                  variantId = product.variants.find(v => v.name === firstKey && v.value === selectedVariants[firstKey])?.id;
+                }
+
                 setIsSelectionModalVisible(false);
                 setAddingToCart(true);
                 try {
-                  const result = await addToCart(productId, selectedQuantity);
+                  const result = await addToCart(productId, selectedQuantity, variantId);
                   if (result.success) {
                     if (modalMode === 'buy') {
                        router.push('/(tabs)/cart');
@@ -600,10 +630,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: '#EEEEEE',
+    paddingBottom: 12,
   },
+  shopRow: { flexDirection: 'row', alignItems: 'center' },
+  shopInfo: { flex: 1, marginLeft: 12 },
+  shopNameText: { fontSize: 16, fontWeight: '600', color: '#333' },
+  shopActiveText: { fontSize: 12, color: '#888', marginTop: 4 },
   iconButton: {
     width: 32,
     height: 32,

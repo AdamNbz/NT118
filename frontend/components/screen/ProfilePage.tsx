@@ -35,7 +35,8 @@ const ProfilePage = () => {
     try {
       setSaving(true);
       await userApi.updateProfile({
-        name: profile.name,
+        email: profile.email,
+        fullName: profile.name || undefined,
         phone: profile.phone || undefined,
         gender: profile.gender || undefined,
         dateOfBirth: profile.dateOfBirth || undefined,

@@ -90,7 +90,7 @@ public class PaymentsController(AppDbContext db, IVnpayClient vnpayClient, ILogg
             return NotFound(new { message = "Không tìm thấy đơn hàng." });
         }
 
-        Payment payment = null;
+        Payment? payment = null;
         if (order != null)
         {
             logger.LogInformation("Creating pending payment record. OrderId: {OrderId}", body.OrderId);

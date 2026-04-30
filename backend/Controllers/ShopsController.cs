@@ -83,8 +83,24 @@ public class ShopsController(AppDbContext db) : ControllerBase
         return Ok(new { message = "Đã follow shop." });
     }
 
-        db.Follows.Remove(follow);
-        await db.SaveChangesAsync(cancellationToken);
+    [Authorize]
+    [HttpDelete("{id:long}/follow")]
+    public async Task<IActionResult> UnfollowShop(long id, CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var shopExists = await db.Shops.AnyAsync(x => x.Id == id, cancellationToken);
+        if (!shopExists)
+            return NotFound(new { message = "Không tìm thấy shop." });
+
+        var follow = await db.Follows.FirstOrDefaultAsync(x => x.UserId == userId && x.ShopId == id, cancellationToken);
+        if (follow is not null)
+        {
+            db.Follows.Remove(follow);
+            await db.SaveChangesAsync(cancellationToken);
+        }
+
         return NoContent();
     }
 

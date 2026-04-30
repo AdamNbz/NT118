@@ -40,18 +40,38 @@ public record UserAddressResponse(
     bool IsDefault,
     DateTime CreatedAt);
 
-public record UpsertUserAddressRequest(
-    [param: Required, MaxLength(100)] string RecipientName,
-    [param: Required, MaxLength(20)] string RecipientPhone,
-    [param: Required, MaxLength(50)] string Province,
-    [param: Required, MaxLength(50)] string District,
-    [param: Required, MaxLength(50)] string Ward,
-    [param: Required, MaxLength(500)] string StreetAddress,
-    double? Latitude,
-    double? Longitude,
-    [param: MaxLength(200)] string? PoiName,
-    [param: MaxLength(500)] string? FormattedAddress,
-    bool IsDefault);
+public class UpsertUserAddressRequest
+{
+    [Required, MaxLength(100)]
+    public string RecipientName { get; set; } = string.Empty;
+
+    [Required, MaxLength(20)]
+    public string RecipientPhone { get; set; } = string.Empty;
+
+    [Required, MaxLength(50)]
+    public string Province { get; set; } = string.Empty;
+
+    [Required, MaxLength(50)]
+    public string District { get; set; } = string.Empty;
+
+    [Required, MaxLength(50)]
+    public string Ward { get; set; } = string.Empty;
+
+    [Required, MaxLength(500)]
+    public string StreetAddress { get; set; } = string.Empty;
+
+    public double? Latitude { get; set; }
+
+    public double? Longitude { get; set; }
+
+    [MaxLength(200)]
+    public string? PoiName { get; set; }
+
+    [MaxLength(500)]
+    public string? FormattedAddress { get; set; }
+
+    public bool IsDefault { get; set; }
+}
 
 public record ChangePasswordRequest(
     [property: Required, MinLength(6), MaxLength(128)] string CurrentPassword,
@@ -70,6 +90,8 @@ public record UserOrderItemResponse(
 public record UserCartItemResponse(
     long Id,
     long ProductId,
+    long ShopId,
+    string ShopName,
     string ProductName,
     string ProductSlug,
     decimal UnitPrice,

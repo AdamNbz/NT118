@@ -79,6 +79,7 @@ const HomePage = () => {
   const [featuredProducts, setFeaturedProducts] = useState<Product[]>([]);
   const [newestProducts, setNewestProducts] = useState<Product[]>([]);
   const [suggestedProducts, setSuggestedProducts] = useState<Product[]>([]);
+  const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
@@ -86,17 +87,21 @@ const HomePage = () => {
 
   const loadData = useCallback(async () => {
     try {
-      const [profile, featured, newest, suggested] = await Promise.all([
+      const [profile, featured, newest, suggested, favs] = await Promise.all([
         userApi.getProfile().catch(() => null),
         getFeaturedProducts(6),
         getProducts({ page: 1, pageSize: 6, sort: 'newest' }),
         getProducts({ page: 1, pageSize: 6, sort: 'popular' }),
+        import('../../lib/wishlistApi').then(m => m.getFavorites().catch(() => ({ data: [] } as any)))
       ]);
 
       if (profile) setUser(profile);
       setFeaturedProducts(featured.map(toCardProduct));
       setNewestProducts(newest.data.map(toCardProduct));
       setSuggestedProducts(suggested.data.map(toCardProduct));
+      if (favs && favs.data) {
+        setFavoriteIds(new Set(favs.data.map((f: any) => f.product.id)));
+      }
     } catch (err) {
       console.log('Failed to load home data:', err);
     } finally {
@@ -168,14 +173,23 @@ const HomePage = () => {
     router.push(`/product/${product.id}` as any);
   };
 
-  return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        <Header 
-          onMessagePress={() => router.push('/chat')} 
-        />
+  const handleToggleFavorite = async (product: Product) => {
+    try {
+      const pid = Number(product.id);
+      const { toggleFavorite } = await import('../../lib/wishlistApi');
+      await toggleFavorite(pid);
+      setFavoriteIds(prev => {
+        const next = new Set(prev);
+        if (next.has(pid)) next.delete(pid);
+        else next.add(pid);
+        return next;
+      });
+    } catch (e) {
+      console.log('Failed to toggle favorite', e);
+    }
+  };
 
-        <TouchableOpacity onPress={() => setIsSearchVisible(true)} activeOpacity={0.9}>
+  return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <StatusBar barStyle="dark-content" />
       <Header 
@@ -183,6 +197,7 @@ const HomePage = () => {
         avatarUrl={user?.avatarUrl}
         onMessagePress={() => router.push('/chat')}
         onProfilePress={() => router.push('/(tabs)/settings')}
+        onMenuPress={() => router.push('/(tabs)/notification')}
       />
       
       <ScrollView 
@@ -231,7 +246,7 @@ const HomePage = () => {
             contentContainerStyle={styles.horizontalList}
           >
             {featuredProducts.map((product) => (
-              <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
+              <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
             ))}
           </ScrollView>
         )}
@@ -265,7 +280,7 @@ const HomePage = () => {
             contentContainerStyle={styles.horizontalList}
           >
             {newestProducts.map((product) => (
-              <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} />
+              <ProductCard key={product.id} product={product} isHorizontal={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
             ))}
           </ScrollView>
         )}
@@ -288,12 +303,12 @@ const HomePage = () => {
           <View style={styles.masonryContainer}>
             <View style={[styles.column, { width: (width - 40) / 2 }]}>
               {suggestedProducts.filter((_, i) => i % 2 === 0).map((product) => (
-                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} />
+                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
               ))}
             </View>
             <View style={[styles.column, { width: (width - 40) / 2 }]}>
               {suggestedProducts.filter((_, i) => i % 2 !== 0).map((product) => (
-                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} />
+                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
               ))}
             </View>
           </View>

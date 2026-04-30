@@ -41,6 +41,8 @@ CREATE TABLE IF NOT EXISTS users (
   password_hash VARCHAR(255) NOT NULL,
   role user_role DEFAULT 'buyer',
   status user_status DEFAULT 'active',
+  password_reset_code VARCHAR(20),
+  password_reset_code_expires TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
@@ -85,6 +87,10 @@ CREATE TABLE IF NOT EXISTS user_addresses (
   district VARCHAR(50) NOT NULL,
   ward VARCHAR(50) NOT NULL,
   street_address TEXT NOT NULL,
+  latitude DOUBLE PRECISION,
+  longitude DOUBLE PRECISION,
+  poi_name VARCHAR(200),
+  formatted_address VARCHAR(500),
   is_default BOOLEAN DEFAULT FALSE,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
@@ -583,3 +589,53 @@ CREATE TABLE IF NOT EXISTS review_images (
 );
 
 CREATE INDEX IF NOT EXISTS idx_review_images_review_sort ON review_images(review_id, sort_order);
+
+-- 28. addresses (Vietnam administrative divisions)
+CREATE TABLE IF NOT EXISTS addresses (
+  code VARCHAR(20) PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  name_en VARCHAR(255),
+  full_name VARCHAR(255) NOT NULL,
+  full_name_en VARCHAR(255),
+  code_name VARCHAR(255) NOT NULL,
+  parent_code VARCHAR(20),
+  level INTEGER NOT NULL
+);
+
+CREATE INDEX IF NOT EXISTS idx_addresses_parent_code ON addresses(parent_code);
+CREATE INDEX IF NOT EXISTS idx_addresses_level ON addresses(level);
+
+-- 29. sample_items
+CREATE TABLE IF NOT EXISTS sample_items (
+  id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL
+);
+
+-- 30. wishlist_collections
+CREATE TABLE IF NOT EXISTS wishlist_collections (
+  id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL,
+  name VARCHAR(100) NOT NULL,
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+);
+
+DROP TRIGGER IF EXISTS update_wishlist_collections_updated_at ON wishlist_collections;
+CREATE TRIGGER update_wishlist_collections_updated_at 
+    BEFORE UPDATE ON wishlist_collections 
+    FOR EACH ROW 
+    EXECUTE FUNCTION update_updated_at_column();
+
+-- 31. wishlist_collection_items
+CREATE TABLE IF NOT EXISTS wishlist_collection_items (
+  id BIGSERIAL PRIMARY KEY,
+  collection_id BIGINT NOT NULL,
+  product_id BIGINT NOT NULL,
+  added_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+  FOREIGN KEY (collection_id) REFERENCES wishlist_collections(id) ON DELETE CASCADE,
+  FOREIGN KEY (product_id) REFERENCES products(id) ON DELETE CASCADE,
+  UNIQUE(collection_id, product_id)
+);
+
+CREATE INDEX IF NOT EXISTS idx_wishlist_collection_items_collection ON wishlist_collection_items(collection_id);

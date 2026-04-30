@@ -4,18 +4,20 @@
 import argparse
 import ast
 import csv
+import json
 import os
 import re
 import unicodedata
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Iterable, List, Sequence, Tuple
+from typing import Any, Dict, Iterable, List, Sequence, Tuple
 
 import psycopg2
 from psycopg2.extras import execute_values
 
 
 DEFAULT_CSV_FILE = "gearvn_products_transformed.csv"
+DEFAULT_JSON_FILE = "data.json"
 
 
 CATEGORY_KEYWORDS: Dict[str, List[str]] = {
@@ -94,8 +96,9 @@ class ProductRow:
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description="Seed products CSV to PostgreSQL")
+    parser = argparse.ArgumentParser(description="Seed products CSV & address JSON to PostgreSQL")
     parser.add_argument("--csv", default=DEFAULT_CSV_FILE, help="Path to CSV file")
+    parser.add_argument("--json", default=DEFAULT_JSON_FILE, help="Path to address JSON file")
     parser.add_argument("--host", default=os.getenv("DB_HOST", "localhost"))
     parser.add_argument("--port", type=int, default=int(os.getenv("DB_PORT", "5432")))
     parser.add_argument("--database", default=os.getenv("DB_NAME", "nt118"))
@@ -105,6 +108,16 @@ def parse_args() -> argparse.Namespace:
         "--truncate",
         action="store_true",
         help="Truncate products/product_images before inserting",
+    )
+    parser.add_argument(
+        "--skip-address",
+        action="store_true",
+        help="Skip seeding addresses from JSON",
+    )
+    parser.add_argument(
+        "--skip-products",
+        action="store_true",
+        help="Skip seeding products from CSV",
     )
     return parser.parse_args()
 
@@ -214,6 +227,9 @@ def transform_rows(csv_path: str) -> List[ProductRow]:
         seen_slugs.add(slug)
 
         sale_price = to_float(row.get("salePrice"), 0.0)
+        if sale_price <= 0:
+            continue
+
         original_price = to_float(row.get("originalPrice"), sale_price)
         rating = clamp_rating(to_float(row.get("rating"), 0.0))
         review_count = max(0, to_int(row.get("reviewCount"), 0))
@@ -427,11 +443,69 @@ def replace_product_images(cur, products: Sequence[ProductRow], product_ids: Dic
     return len(rows)
 
 
-def run_seed(db: DbConfig, csv_path: str, truncate: bool) -> None:
-    products = transform_rows(csv_path)
-    if not products:
-        raise RuntimeError("No valid rows found in CSV.")
+def slugify_address(value: str) -> str:
+    normalized = unicodedata.normalize("NFKD", value)
+    ascii_text = normalized.encode("ascii", "ignore").decode("ascii")
+    slug = re.sub(r"[^a-zA-Z0-9]+", "_", ascii_text.lower()).strip("_")
+    return slug or "item"
 
+
+def iter_address_rows(json_path: str) -> List[Tuple[str, str, str, str, str, str, str | None, int]]:
+    with open(json_path, "r", encoding="utf-8") as f:
+        data: List[Dict[str, Any]] = json.load(f)
+
+    rows: List[Tuple[str, str, str, str, str, str, str | None, int]] = []
+    for level1 in data:
+        code1 = (level1.get("level1_id") or "").strip()
+        name1 = (level1.get("name") or "").strip()
+        if code1 and name1:
+            code_name1 = slugify_address(name1)
+            rows.append((code1, name1, "", name1, "", code_name1, None, 1))
+
+        level2s = level1.get("level2s") or []
+        for level2 in level2s:
+            code2 = (level2.get("level2_id") or "").strip()
+            name2 = (level2.get("name") or "").strip()
+            if code2 and name2:
+                code_name2 = slugify_address(name2)
+                rows.append((code2, name2, "", name2, "", code_name2, code1 or None, 2))
+
+            level3s = level2.get("level3s") or []
+            for level3 in level3s:
+                code3 = (level3.get("level3_id") or "").strip()
+                name3 = (level3.get("name") or "").strip()
+                if code3 and name3:
+                    code_name3 = slugify_address(name3)
+                    rows.append((code3, name3, "", name3, "", code_name3, code2 or None, 3))
+
+    return rows
+
+
+def insert_addresses(cur, rows: Sequence[Tuple[str, str, str, str, str, str, str | None, int]]) -> int:
+    if not rows:
+        return 0
+
+    execute_values(
+        cur,
+        """
+        INSERT INTO addresses (code, name, name_en, full_name, full_name_en, code_name, parent_code, level)
+        VALUES %s
+        ON CONFLICT (code) DO UPDATE SET
+            name = EXCLUDED.name,
+            name_en = EXCLUDED.name_en,
+            full_name = EXCLUDED.full_name,
+            full_name_en = EXCLUDED.full_name_en,
+            code_name = EXCLUDED.code_name,
+            parent_code = EXCLUDED.parent_code,
+            level = EXCLUDED.level;
+        """,
+        rows,
+        page_size=500,
+    )
+    return len(rows)
+
+
+def run_seed(db: DbConfig, csv_path: str, json_path: str | None, truncate: bool, skip_address: bool, skip_products: bool) -> None:
     conn = psycopg2.connect(
         host=db.host,
         port=db.port,
@@ -442,26 +516,46 @@ def run_seed(db: DbConfig, csv_path: str, truncate: bool) -> None:
 
     inserted_products = 0
     inserted_images = 0
+    inserted_addresses = 0
+    shop_id = 0
+    category_count = 0
 
     try:
         with conn:
             with conn.cursor() as cur:
-                if truncate:
-                    truncate_product_tables(cur)
+                # --- Seed addresses ---
+                if not skip_address and json_path:
+                    address_rows = iter_address_rows(json_path)
+                    if address_rows:
+                        inserted_addresses = insert_addresses(cur, address_rows)
+                        print(f"Addresses upserted: {inserted_addresses}")
 
-                shop_id = ensure_seller_and_shop(cur)
-                category_ids = ensure_categories(cur, [p.category_slug for p in products])
-                product_ids = insert_products(cur, products, shop_id, category_ids)
-                inserted_images = replace_product_images(cur, products, product_ids)
-                inserted_products = len(product_ids)
+                # --- Seed products ---
+                if not skip_products:
+                    products = transform_rows(csv_path)
+                    if not products:
+                        raise RuntimeError("No valid rows found in CSV.")
+
+                    if truncate:
+                        truncate_product_tables(cur)
+
+                    shop_id = ensure_seller_and_shop(cur)
+                    category_ids = ensure_categories(cur, [p.category_slug for p in products])
+                    product_ids = insert_products(cur, products, shop_id, category_ids)
+                    inserted_images = replace_product_images(cur, products, product_ids)
+                    inserted_products = len(product_ids)
+                    category_count = len(set(p.category_slug for p in products))
 
         print("=" * 60)
-        print("Product seeding completed")
+        print("Seeding completed")
         print("=" * 60)
-        print(f"Products upserted : {inserted_products}")
-        print(f"Images inserted   : {inserted_images}")
-        print(f"Categories synced : {len(set(p.category_slug for p in products))}")
-        print(f"Shop id used      : {shop_id}")
+        if not skip_address and json_path:
+            print(f"Addresses upserted : {inserted_addresses}")
+        if not skip_products:
+            print(f"Products upserted  : {inserted_products}")
+            print(f"Images inserted    : {inserted_images}")
+            print(f"Categories synced  : {category_count}")
+            print(f"Shop id used       : {shop_id}")
         print("=" * 60)
     finally:
         conn.close()
@@ -470,13 +564,22 @@ def run_seed(db: DbConfig, csv_path: str, truncate: bool) -> None:
 def main() -> None:
     args = parse_args()
 
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+
     csv_path = args.csv
     if not os.path.isabs(csv_path):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
         csv_path = os.path.join(script_dir, csv_path)
-
     if not os.path.exists(csv_path):
         raise FileNotFoundError(f"CSV file not found: {csv_path}")
+
+    json_path: str | None = None
+    if not args.skip_address:
+        json_path = args.json
+        if not os.path.isabs(json_path):
+            json_path = os.path.join(script_dir, json_path)
+        if not os.path.exists(json_path):
+            print(f"WARNING: JSON file not found: {json_path}, skipping address seeding")
+            json_path = None
 
     db_config = DbConfig(
         host=args.host,
@@ -486,7 +589,7 @@ def main() -> None:
         password=args.password,
     )
 
-    run_seed(db_config, csv_path, truncate=args.truncate)
+    run_seed(db_config, csv_path, json_path, truncate=args.truncate, skip_address=args.skip_address, skip_products=args.skip_products)
 
 
 if __name__ == "__main__":

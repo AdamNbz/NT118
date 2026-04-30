@@ -6,12 +6,8 @@ export const mapBackendCartToSections = (items: UserCartItemResponse[]): CartSec
   if (items.length === 0) return [];
   
   const grouped = items.reduce((acc, item) => {
-    const product = MOCK_PRODUCTS.find(p => p.id === item.productId);
-    const shopId = product?.shopId?.toString() || 'shopeelite-mall';
-    
-    // Find shop name from MOCK_SHOPS based on ownerId (which matches product.shopId in this mock)
-    const shop = MOCK_SHOPS.find(s => s.ownerId === product?.shopId);
-    const shopName = shop?.name || 'ShopeeLite Mall';
+    const shopId = item.shopId.toString();
+    const shopName = item.shopName;
 
     if (!acc[shopId]) {
       acc[acc[shopId] ? shopId : shopId] = {

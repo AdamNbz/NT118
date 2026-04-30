@@ -16,6 +16,7 @@ public class ProductsController(IProductService products) : ControllerBase
     public async Task<ActionResult<ProductListResponse>> GetProducts(
         [FromQuery] string? q,
         [FromQuery] long? categoryId,
+        [FromQuery] long? shopId,
         [FromQuery] decimal? minPrice,
         [FromQuery] decimal? maxPrice,
         [FromQuery] string? sort,
@@ -23,7 +24,7 @@ public class ProductsController(IProductService products) : ControllerBase
         [FromQuery] int pageSize = 20,
         CancellationToken cancellationToken = default)
     {
-        var query = new ProductQuery(q, categoryId, minPrice, maxPrice, sort, page, pageSize);
+        var query = new ProductQuery(q, categoryId, shopId, minPrice, maxPrice, sort, page, pageSize);
         return Ok(await products.GetProductsAsync(query, cancellationToken));
     }
 

@@ -3,12 +3,22 @@ using System.ComponentModel.DataAnnotations;
 
 namespace Backend.Contracts;
 
-public record AddToCartRequest(
-    [property: Range(1, long.MaxValue)] long ProductId,
-    long? VariantId,
-    [property: Range(1, 1000)] int Quantity = 1);
+public class AddToCartRequest
+{
+    [Range(1, long.MaxValue)]
+    public long ProductId { get; set; }
 
-public record UpdateCartItemRequest([property: Range(1, 1000)] int Quantity);
+    public long? VariantId { get; set; }
+
+    [Range(1, 1000)]
+    public int Quantity { get; set; } = 1;
+}
+
+public class UpdateCartItemRequest
+{
+    [Range(1, 1000)]
+    public int Quantity { get; set; }
+}
 
 public record CreateReviewRequest(
     [property: Range(1, long.MaxValue)] long OrderId,

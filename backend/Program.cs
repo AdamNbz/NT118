@@ -114,7 +114,8 @@ builder.Services.AddCors(options =>
     {
         policy.AllowAnyHeader()
             .AllowAnyMethod()
-            .SetIsOriginAllowed(_ => true);
+            .SetIsOriginAllowed(_ => true)
+            .AllowCredentials();
     });
 });
 
@@ -147,8 +148,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
-    // Create database if not exists
-    db.Database.EnsureCreated();
+    // Database schema is provisioned via database/init.sql in this repo.
+    // Avoid EnsureCreated() here because it can create a schema that diverges from migrations.
 
     // Create enums if they don't exist
     db.Database.ExecuteSqlRaw(@"
@@ -217,15 +218,20 @@ using (var scope = app.Services.CreateScope())
             ADD COLUMN IF NOT EXISTS password_reset_code_expires TIMESTAMP;
     ");
 
-    // Apply pending migrations (creates tables including addresses)
+    // Apply pending migrations only if the database is already managed by EF migrations.
+    // If the DB was created from init.sql (no __EFMigrationsHistory), running Migrate() can fail
+    // with PendingModelChangesWarning.
     try
     {
-        db.Database.Migrate();
+        var hasHistory = db.Database.SqlQueryRaw<bool>("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '__EFMigrationsHistory')").AsEnumerable().FirstOrDefault();
+        if (hasHistory)
+        {
+            db.Database.Migrate();
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Migration failed (DB may have been created with EnsureCreated): {ex.Message}");
-        db.Database.EnsureCreated();
+        Console.WriteLine($"Migration skipped/failed: {ex.Message}");
     }
 
     // Ensure addresses table exists (fallback when DB was created before Address entity was added)

@@ -215,7 +215,7 @@ export default function AddAddressPage({ onBack, onSuccess, addressId }: AddAddr
           </TouchableOpacity>
 
           <View style={styles.inputWrap}>
-            <TextInput style={styles.input} placeholder="Tên đường, Toà nhà, Số nhà." value={streetAddress} onChangeText={setStreetAddress} />
+            <TextInput style={styles.input} placeholder="Tên đường, Toà nhà, Số nhà." value={streetAddress} onChangeText={(text) => { setStreetAddress(text); setCoordSource('auto'); }} />
           </View>
 
           <View style={styles.mapWrap}>

@@ -3,7 +3,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, 
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
-import { orderApi, OrderDTO, OrderStatus } from '../../lib/orderApi';
+import { getMyOrders, OrderDTO, OrderStatus } from '../../lib/orderApi';
 
 const TABS: { label: string; status: OrderStatus | 'all' }[] = [
   { label: 'Tất cả', status: 'all' },
@@ -24,7 +24,7 @@ const OrderListPage = () => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const data = await orderApi.getMyOrders();
+      const data = await getMyOrders();
       setOrders(data);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
@@ -36,7 +36,7 @@ const OrderListPage = () => {
   const onRefresh = async () => {
     setRefreshing(true);
     try {
-      const data = await orderApi.getMyOrders();
+      const data = await getMyOrders();
       setOrders(data);
     } finally {
       setRefreshing(false);

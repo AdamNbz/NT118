@@ -124,6 +124,16 @@ public class OrdersController(AppDbContext db, INotificationRealtimeService noti
 
             var product = products.First(x => x.Id == input.ProductId);
             var unitPrice = product.Price;
+            
+            if (input.VariantId.HasValue)
+            {
+                var variant = await db.ProductVariants.FirstOrDefaultAsync(v => v.Id == input.VariantId.Value && v.ProductId == product.Id, cancellationToken);
+                if (variant != null)
+                {
+                    unitPrice += variant.PriceModifier;
+                }
+            }
+
             var itemTotal = unitPrice * input.Quantity;
             subtotal += itemTotal;
 

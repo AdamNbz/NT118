@@ -18,11 +18,12 @@ interface PaymentPageProps {
   totalAmount: number;
   productId?: number;
   quantity?: number;
+  cartItemIds?: string;
 }
 
 type ScreenState = 'payment' | 'address_selection' | 'add_address' | 'success';
 
-export default function PaymentPage({ onClose, totalAmount, productId, quantity }: PaymentPageProps) {
+export default function PaymentPage({ onClose, totalAmount, productId, quantity, cartItemIds }: PaymentPageProps) {
   const [activeScreen, setActiveScreen] = useState<ScreenState>('payment');
   const [insuranceSelected, setInsuranceSelected] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
@@ -68,7 +69,11 @@ export default function PaymentPage({ onClose, totalAmount, productId, quantity 
 
     try {
       const response = await apiClient.get('/api/cart');
-      const data = response.data?.data || response.data;
+      let data = response.data?.data || response.data;
+      if (Array.isArray(data) && cartItemIds) {
+         const selectedIds = cartItemIds.split(',').map(Number);
+         data = data.filter((item: any) => selectedIds.includes(item.id));
+      }
       setCartItems(Array.isArray(data) ? data : []);
     } catch (error) {
       console.log('Failed to fetch cart:', error);

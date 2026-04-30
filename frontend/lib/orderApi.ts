@@ -33,6 +33,10 @@ export interface OrderDetailResponse {
   items: OrderItem[];
 }
 
+export type OrderStatus = 'pending' | 'confirmed' | 'processing' | 'shipping' | 'delivered' | 'cancelled' | 'refunded' | string;
+export type OrderDTO = OrderDetail;
+
+
 // ── API calls ───────────────────────────────────────────────────────
 export async function getOrderDetail(orderId: number): Promise<OrderDetailResponse> {
   const res = await apiClient.get(`/api/orders/${orderId}`);
@@ -44,6 +48,10 @@ export async function getMyOrders(): Promise<OrderDetail[]> {
   const res = await apiClient.get('/api/orders');
   const data = res.data?.data || res.data;
   return Array.isArray(data) ? data : [];
+}
+
+export async function updateOrderStatus(orderId: number, status: OrderStatus): Promise<void> {
+  await apiClient.post(`/api/orders/${orderId}/status`, { status });
 }
 
 // ── Helpers ─────────────────────────────────────────────────────────

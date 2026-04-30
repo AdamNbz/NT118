@@ -14,6 +14,7 @@ export default function PaymentScreen() {
       totalAmount={0} 
       productId={productId}
       quantity={quantity}
+      cartItemIds={params.cartItemIds as string}
     />
   );
 }

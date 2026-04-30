@@ -132,7 +132,20 @@ export default function useCartScreen() {
   };
 
   const handleCheckout = () => {
-    console.log('checkout');
+    const selectedIds = sections
+      .flatMap(s => s.items)
+      .filter(i => i.checked && !i.disabled)
+      .map(i => i.id);
+    
+    if (selectedIds.length === 0) {
+      alert("Vui lòng chọn ít nhất 1 sản phẩm");
+      return;
+    }
+    
+    router.push({
+      pathname: '/payment',
+      params: { cartItemIds: selectedIds.join(',') }
+    });
   };
 
   const handleDeleteShop = async (shopId: string) => {

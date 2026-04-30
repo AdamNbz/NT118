@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 import { MOCK_PRODUCTS } from './mockData';
 
 // Toggle to use mock data for testing
-const USE_MOCK = true;
+const USE_MOCK = false;
 
 export interface AddToCartRequest {
   productId: number;
@@ -13,6 +13,8 @@ export interface AddToCartRequest {
 export interface UserCartItemResponse {
   id: number;
   productId: number;
+  shopId: number;
+  shopName: string;
   productName: string;
   productSlug: string;
   unitPrice: number;
@@ -28,6 +30,8 @@ let mockCart: UserCartItemResponse[] = [
   {
     id: 1,
     productId: MOCK_PRODUCTS[0].id,
+    shopId: (MOCK_PRODUCTS[0] as any).shopId ?? 1,
+    shopName: 'ShopeeLite Mall',
     productName: MOCK_PRODUCTS[0].name,
     productSlug: MOCK_PRODUCTS[0].slug,
     unitPrice: MOCK_PRODUCTS[0].price,
@@ -41,6 +45,8 @@ let mockCart: UserCartItemResponse[] = [
   {
     id: 2,
     productId: MOCK_PRODUCTS[3].id,
+    shopId: (MOCK_PRODUCTS[3] as any).shopId ?? 1,
+    shopName: 'ShopeeLite Mall',
     productName: MOCK_PRODUCTS[3].name,
     productSlug: MOCK_PRODUCTS[3].slug,
     unitPrice: MOCK_PRODUCTS[3].price,
@@ -70,6 +76,8 @@ export async function addToCart(productId: number, quantity: number = 1, variant
       mockCart.push({
         id: mockCart.length > 0 ? Math.max(...mockCart.map(i => i.id)) + 1 : 1,
         productId,
+        shopId: (product as any).shopId ?? 1,
+        shopName: 'ShopeeLite Mall',
         productName: product.name,
         productSlug: product.slug,
         unitPrice: product.price + (variant?.priceModifier || 0),
@@ -118,8 +126,9 @@ export async function getCartItems(): Promise<UserCartItemResponse[]> {
     return [...mockCart];
   }
   try {
-    const res = await apiClient.get<UserCartItemResponse[]>('/api/cart');
-    return res.data;
+    const res = await apiClient.get('/api/cart');
+    const data = res.data?.data || res.data;
+    return Array.isArray(data) ? data : [];
   } catch (err) {
     console.error('Failed to fetch cart items:', err);
     return [];

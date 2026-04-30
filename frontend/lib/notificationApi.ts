@@ -97,17 +97,30 @@ export function useNotificationSignalR(onNotification?: (n: BackendNotification)
 }
 
 // ── Shared notification state hook ──────────────────────────────────
+let globalUnreadCount = 0;
+const unreadListeners = new Set<(count: number) => void>();
+
+function setGlobalUnreadCount(count: number) {
+  globalUnreadCount = Math.max(0, count);
+  unreadListeners.forEach(cb => cb(globalUnreadCount));
+}
+
 export function useNotifications() {
   const [notifications, setNotifications] = useState<BackendNotification[]>([]);
   const [loading, setLoading] = useState(true);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const [unreadCount, setLocalUnreadCount] = useState(globalUnreadCount);
+
+  useEffect(() => {
+    unreadListeners.add(setLocalUnreadCount);
+    return () => { unreadListeners.delete(setLocalUnreadCount); };
+  }, []);
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const data = await fetchNotifications();
       setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.isRead).length);
+      setGlobalUnreadCount(data.filter((n) => !n.isRead).length);
     } catch {
       // silent
     } finally {
@@ -118,7 +131,7 @@ export function useNotifications() {
   const loadUnreadCount = useCallback(async () => {
     try {
       const data = await fetchNotifications(true);
-      setUnreadCount(data.length);
+      setGlobalUnreadCount(data.length);
     } catch {
       // silent
     }
@@ -126,7 +139,7 @@ export function useNotifications() {
 
   const handleRealtimeNotification = useCallback((n: BackendNotification) => {
     setNotifications((prev) => [n, ...prev]);
-    setUnreadCount((prev) => prev + 1);
+    setGlobalUnreadCount(globalUnreadCount + 1);
   }, []);
 
   const markRead = useCallback(async (id: number) => {
@@ -135,7 +148,7 @@ export function useNotifications() {
       setNotifications((prev) =>
         prev.map((n) => (n.id === id ? { ...n, isRead: true } : n)),
       );
-      setUnreadCount((prev) => Math.max(0, prev - 1));
+      setGlobalUnreadCount(globalUnreadCount - 1);
     } catch {
       // silent
     }
@@ -145,7 +158,7 @@ export function useNotifications() {
     try {
       await markAllNotificationsRead();
       setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
-      setUnreadCount(0);
+      setGlobalUnreadCount(0);
     } catch {
       // silent
     }

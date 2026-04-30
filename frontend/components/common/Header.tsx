@@ -2,6 +2,8 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Platform } from 'react-native';
 import { Feather, Ionicons } from '@expo/vector-icons';
 
+import { useNotifications } from '@/lib/notificationApi';
+
 interface HeaderProps {
   onMenuPress?: () => void;
   onProfilePress?: () => void;
@@ -15,6 +17,8 @@ const Header: React.FC<HeaderProps> = ({
   onProfilePress, 
   onMessagePress,
 }) => {
+  const { unreadCount } = useNotifications();
+
   return (
     <View style={styles.outerContainer}>
       <View style={styles.container}>
@@ -25,10 +29,16 @@ const Header: React.FC<HeaderProps> = ({
         <View style={styles.rightSection}>
           <TouchableOpacity style={styles.iconButton} onPress={onMessagePress}>
             <Feather name="message-circle" size={22} color="#1e293b" />
-            <View style={styles.badge} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={onMenuPress}>
             <Ionicons name="notifications-outline" size={22} color="#1e293b" />
+            {unreadCount > 0 && (
+              <View style={[styles.badge, { width: 14, height: 14, borderRadius: 7, top: 4, right: 4 }]}>
+                <Text style={{ color: '#fff', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -84,6 +94,17 @@ const styles = StyleSheet.create({
   profileImage: {
     width: '100%',
     height: '100%',
+  },
+  badge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F73658',
+    borderWidth: 1,
+    borderColor: '#fff',
   },
 });
 

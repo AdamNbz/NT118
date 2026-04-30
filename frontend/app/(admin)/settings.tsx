@@ -69,7 +69,7 @@ export default function AdminSettings() {
     }
     try {
       setSavingProfile(true);
-      await userApi.updateProfile({ name, phone });
+      await userApi.updateProfile({ email: profile!.email, fullName: name, phone });
       setProfile(prev => prev ? { ...prev, name, phone } : null);
       setProfileModalVisible(false);
       Alert.alert('Thành công', 'Đã cập nhật thông tin cá nhân');
@@ -91,7 +91,7 @@ export default function AdminSettings() {
     }
     try {
       setSavingPassword(true);
-      await userApi.changePassword({ oldPassword, newPassword });
+      await userApi.changePassword({ currentPassword: oldPassword, newPassword });
       setPasswordModalVisible(false);
       setOldPassword('');
       setNewPassword('');

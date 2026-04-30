@@ -29,7 +29,7 @@ const BuyerAccountScreen: React.FC = () => {
   );
 
   const orderActions = [
-    { key: 'confirm', icon: 'clipboard-check-outline', label: 'Chờ xác nhận', color: '#3b82f6', bg: '#eff6ff', status: 'pending' },
+    { key: 'confirm', icon: 'clipboard-outline', label: 'Chờ xác nhận', color: '#3b82f6', bg: '#eff6ff', status: 'pending' },
     { key: 'pickup', icon: 'cube-outline', label: 'Chờ lấy hàng', color: '#f59e0b', bg: '#fffbeb', status: 'confirmed' },
     { key: 'ship', icon: 'car-outline', label: 'Chờ giao hàng', color: '#10b981', bg: '#ecfdf5', status: 'shipping' },
     { key: 'review', icon: 'star-outline', label: 'Đánh giá', color: '#ef476f', bg: '#fff1f2', status: 'delivered' },

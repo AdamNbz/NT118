@@ -29,15 +29,17 @@ export interface UserAddressDTO {
 }
 
 export interface UpdateProfileRequest {
-  name: string;
+  email: string;
   phone?: string;
+  fullName?: string;
   avatarUrl?: string;
   gender?: string;
   dateOfBirth?: string;
+  bio?: string;
 }
 
 export interface ChangePasswordRequest {
-  oldPassword: string;
+  currentPassword: string;
   newPassword: string;
 }
 
@@ -66,11 +68,36 @@ export const userApi = {
       };
     }
     const res = await apiClient.get('/api/user/profile');
-    return res.data?.data || res.data;
+    const raw = res.data?.data || res.data;
+    // Map backend UserProfileResponse to frontend UserProfileDTO
+    return {
+      id: raw.userId ?? raw.id,
+      email: raw.email,
+      name: raw.fullName || raw.username || raw.email?.split('@')[0] || '',
+      phone: raw.phone,
+      avatarUrl: raw.avatarUrl,
+      gender: raw.gender === 'male' ? 'Nam' : raw.gender === 'female' ? 'Nữ' : raw.gender === 'other' ? 'Khác' : raw.gender,
+      dateOfBirth: raw.dateOfBirth ? raw.dateOfBirth.split('-').reverse().join('/') : raw.dateOfBirth,
+      role: raw.role || 'buyer',
+    };
   },
 
   updateProfile: async (data: UpdateProfileRequest): Promise<void> => {
-    await apiClient.put('/api/user/profile', data);
+    const payload: any = { ...data };
+    if (payload.gender) {
+      const g = payload.gender.toLowerCase();
+      if (g === 'nam') payload.gender = 'male';
+      else if (g === 'nữ' || g === 'nu') payload.gender = 'female';
+      else if (g === 'khác' || g === 'khac') payload.gender = 'other';
+      else delete payload.gender;
+    }
+    if (payload.dateOfBirth && payload.dateOfBirth.includes('/')) {
+      const [d, m, y] = payload.dateOfBirth.split('/');
+      if (y && m && d) {
+        payload.dateOfBirth = `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+    }
+    await apiClient.put('/api/user/profile', payload);
   },
 
   // --- Security ---

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Pressable, StyleSheet, Text, View, Alert } from 'react-native';
-import { Feather } from '@expo/vector-icons';
+import { Ionicons } from '@expo/vector-icons';
 import Animated, { 
   useAnimatedStyle, 
   withTiming, 
@@ -50,15 +50,11 @@ export default function CartShopHeader({
     );
   };
 
-  const deleteBtnStyle = useAnimatedStyle(() => {
-    return {
-      width: interpolate(anim.value, [0, 1], [0, 70]),
-      opacity: anim.value,
-      transform: [
-        { translateX: interpolate(anim.value, [0, 1], [20, 0]) }
-      ]
-    };
-  });
+  const deleteBtnStyle = useAnimatedStyle(() => ({
+    width: interpolate(anim.value, [0, 1], [0, 70]),
+    opacity: anim.value,
+    transform: [{ translateX: interpolate(anim.value, [0, 1], [20, 0]) }],
+  }));
 
   return (
     <View style={styles.container}>
@@ -66,14 +62,18 @@ export default function CartShopHeader({
         style={[styles.checkbox, checked && styles.checkboxChecked]}
         onPress={onToggle}
       >
-        {checked ? <View style={styles.checkboxInner} /> : null}
+        {checked && <Ionicons name="checkmark" size={14} color="#FFF" />}
       </Pressable>
 
       <Pressable style={styles.shopRow} onPress={onPressShop}>
-        <Text style={styles.mallBadge}>Mall</Text>
+        <View style={styles.mallBadge}>
+          <Ionicons name="storefront" size={10} color="#EE4D2D" />
+          <Text style={styles.mallText}>Mall</Text>
+        </View>
         <Text style={styles.shopName} numberOfLines={1}>
           {shopName}
         </Text>
+        <Ionicons name="chevron-forward" size={16} color="#9CA3AF" />
       </Pressable>
 
       <View style={styles.rightActions}>
@@ -84,8 +84,8 @@ export default function CartShopHeader({
         </Animated.View>
 
         <Pressable style={styles.moreBtn} onPress={toggleDelete}>
-          <Feather 
-            name={showDelete ? "x" : "more-vertical"} 
+          <Ionicons 
+            name={showDelete ? "close" : "ellipsis-vertical"} 
             size={18} 
             color="#9CA3AF" 
           />
@@ -99,17 +99,17 @@ const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 8,
+    paddingHorizontal: 14,
+    paddingTop: 14,
+    paddingBottom: 10,
     backgroundColor: '#fff',
     overflow: 'hidden',
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
     borderColor: '#D1D5DB',
     marginRight: 10,
     alignItems: 'center',
@@ -117,34 +117,33 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   checkboxChecked: {
-    borderColor: '#FF4D4F',
-    backgroundColor: '#FF4D4F',
-  },
-  checkboxInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: '#fff',
+    borderColor: '#EE4D2D',
+    backgroundColor: '#EE4D2D',
   },
   shopRow: {
     flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    gap: 6,
   },
   mallBadge: {
-    fontSize: 11,
-    fontWeight: '700',
-    color: '#EF4444',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 3,
     borderWidth: 1,
-    borderColor: '#EF4444',
+    borderColor: '#EE4D2D',
     borderRadius: 4,
-    paddingHorizontal: 4,
+    paddingHorizontal: 5,
     paddingVertical: 2,
-    marginRight: 8,
+  },
+  mallText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#EE4D2D',
   },
   shopName: {
     flex: 1,
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
     color: '#111827',
   },
@@ -163,7 +162,7 @@ const styles = StyleSheet.create({
   },
   deleteBtn: {
     flex: 1,
-    backgroundColor: '#FF4747',
+    backgroundColor: '#EE4D2D',
     borderRadius: 15,
     alignItems: 'center',
     justifyContent: 'center',
@@ -174,4 +173,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: '600',
   },
-});
+});

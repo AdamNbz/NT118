@@ -1,0 +1,206 @@
+import { useEffect, useRef } from 'react';
+import * as signalR from '@microsoft/signalr';
+import { apiClient, API_BASE_URL } from './apiClient';
+import { getAuthToken } from './authToken';
+
+const USE_MOCK = true;
+
+// ── Types ────────────────────────────────────────────────────────────
+
+export interface ConversationDTO {
+  partnerId: number;
+  partnerName: string;
+  partnerAvatar: string | null;
+  lastMessage: string | null;
+  lastMessageTime: string;
+  unreadCount: number;
+}
+
+export interface MessageDTO {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  orderId: number | null;
+  messageType: string;
+  content: string | null;
+  attachmentUrl: string | null;
+  isRead: boolean;
+  sentAt: string;
+}
+
+export interface SendMessagePayload {
+  receiverId: number;
+  content: string;
+  orderId?: number;
+  attachmentUrl?: string;
+  messageType?: string;
+}
+
+export interface RealtimeMessage {
+  id: number;
+  senderId: number;
+  receiverId: number;
+  content: string | null;
+  messageType: string;
+  attachmentUrl: string | null;
+  sentAt: string;
+}
+
+// ── API Calls ────────────────────────────────────────────────────────
+
+/** Get list of conversations for current user */
+export async function getConversations(): Promise<ConversationDTO[]> {
+  if (USE_MOCK) {
+    return [
+      {
+        partnerId: 1,
+        partnerName: 'Shop Thời Trang ABC',
+        partnerAvatar: 'https://i.pravatar.cc/150?u=1',
+        lastMessage: 'Chào anh, Shop đã gửi hàng cho mình rồi ạ!',
+        lastMessageTime: new Date().toISOString(),
+        unreadCount: 2,
+      },
+      {
+        partnerId: 2,
+        partnerName: 'Đồ Gia Dụng X',
+        partnerAvatar: 'https://i.pravatar.cc/150?u=2',
+        lastMessage: 'Sản phẩm này còn hàng không shop?',
+        lastMessageTime: new Date(Date.now() - 3600000).toISOString(),
+        unreadCount: 0,
+      }
+    ];
+  }
+  const res = await apiClient.get('/api/messages/conversations');
+  const data = res.data?.data || res.data;
+  return Array.isArray(data) ? data : [];
+}
+
+/** Get messages between current user and a partner */
+export async function getMessages(receiverId: number, limit = 100): Promise<MessageDTO[]> {
+  if (USE_MOCK) {
+    return [
+      {
+        id: 1,
+        senderId: 999, // 'me'
+        receiverId: receiverId,
+        orderId: null,
+        messageType: 'text',
+        content: 'Shop ơi, mình muốn hỏi về sản phẩm này',
+        attachmentUrl: null,
+        isRead: true,
+        sentAt: new Date(Date.now() - 7200000).toISOString(),
+      },
+      {
+        id: 2,
+        senderId: receiverId, // 'other'
+        receiverId: 999,
+        orderId: null,
+        messageType: 'text',
+        content: 'Chào bạn, Shop có thể giúp gì cho bạn ạ?',
+        attachmentUrl: null,
+        isRead: true,
+        sentAt: new Date(Date.now() - 3600000).toISOString(),
+      },
+      {
+        id: 3,
+        senderId: receiverId,
+        receiverId: 999,
+        orderId: null,
+        messageType: 'image',
+        content: '',
+        attachmentUrl: 'https://picsum.photos/400/300',
+        isRead: false,
+        sentAt: new Date().toISOString(),
+      }
+    ];
+  }
+  const res = await apiClient.get('/api/messages', {
+    params: { receiverId, limit },
+  });
+  const data = res.data?.data || res.data;
+  return Array.isArray(data) ? data : [];
+}
+
+/** Send a message */
+export async function sendMessage(payload: SendMessagePayload): Promise<{ messageId: number }> {
+  const res = await apiClient.post('/api/messages', {
+    receiverId: payload.receiverId,
+    content: payload.content,
+    orderId: payload.orderId ?? null,
+    attachmentUrl: payload.attachmentUrl ?? null,
+    messageType: payload.messageType ?? 'text',
+  });
+  return res.data?.data || res.data;
+}
+
+/** Mark all messages from a partner as read */
+export async function markConversationRead(receiverId: number): Promise<void> {
+  await apiClient.patch(`/api/messages/${receiverId}/read`);
+}
+
+// ── SignalR Real-time Hook ───────────────────────────────────────────
+
+let chatConnection: signalR.HubConnection | null = null;
+let chatRefCount = 0;
+const chatListeners: Set<(msg: RealtimeMessage) => void> = new Set();
+
+async function ensureChatConnection() {
+  if (chatConnection) return;
+
+  const token = await getAuthToken();
+  if (!token) return;
+
+  const conn = new signalR.HubConnectionBuilder()
+    .withUrl(`${API_BASE_URL}/hubs/notifications`, {
+      accessTokenFactory: () => token,
+    })
+    .withAutomaticReconnect()
+    .build();
+
+  conn.on('message.received', (msg: RealtimeMessage) => {
+    chatListeners.forEach((cb) => cb(msg));
+  });
+
+  try {
+    await conn.start();
+    chatConnection = conn;
+  } catch (e) {
+    console.log('Chat SignalR connection failed:', e);
+  }
+}
+
+async function releaseChatConnection() {
+  if (chatConnection) {
+    await chatConnection.stop();
+    chatConnection = null;
+  }
+}
+
+/**
+ * Hook to listen for real-time incoming messages via SignalR.
+ * The callback receives a RealtimeMessage whenever another user sends
+ * a message to the currently logged-in user.
+ */
+export function useChatSignalR(onNewMessage?: (msg: RealtimeMessage) => void) {
+  const callbackRef = useRef(onNewMessage);
+  callbackRef.current = onNewMessage;
+
+  useEffect(() => {
+    if (!onNewMessage) return;
+
+    const cb = (msg: RealtimeMessage) => callbackRef.current?.(msg);
+    chatListeners.add(cb);
+    chatRefCount++;
+
+    ensureChatConnection();
+
+    return () => {
+      chatListeners.delete(cb);
+      chatRefCount--;
+      if (chatRefCount <= 0) {
+        chatRefCount = 0;
+        releaseChatConnection();
+      }
+    };
+  }, []);
+}

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from './cart.utils';
 
 type CartBottomBarProps = {
@@ -9,7 +10,6 @@ type CartBottomBarProps = {
   onToggleAll?: () => void;
   onCheckout?: () => void;
 };
-
 
 export default function CartBottomBar({
   allChecked,
@@ -22,17 +22,21 @@ export default function CartBottomBar({
     <View style={styles.container}>
       <Pressable style={styles.left} onPress={onToggleAll}>
         <View style={[styles.checkbox, allChecked && styles.checkboxChecked]}>
-          {allChecked ? <View style={styles.checkboxInner} /> : null}
+          {allChecked && <Ionicons name="checkmark" size={14} color="#FFF" />}
         </View>
         <Text style={styles.allText}>Tất cả</Text>
       </Pressable>
 
       <View style={styles.center}>
-        <Text style={styles.totalLabel}>Tổng cộng</Text>
+        <Text style={styles.totalLabel}>Tổng thanh toán</Text>
         <Text style={styles.totalPrice}>{formatPrice(totalPrice)}</Text>
       </View>
 
-      <Pressable style={styles.button} onPress={onCheckout}>
+      <Pressable 
+        style={[styles.button, selectedCount === 0 && styles.buttonDisabled]} 
+        onPress={onCheckout}
+        disabled={selectedCount === 0}
+      >
         <Text style={styles.buttonText}>Mua hàng ({selectedCount})</Text>
       </Pressable>
     </View>
@@ -41,44 +45,44 @@ export default function CartBottomBar({
 
 const styles = StyleSheet.create({
   container: {
-    minHeight: 68,
+    minHeight: 64,
     backgroundColor: '#fff',
     borderTopWidth: 1,
-    borderTopColor: '#E5E7EB',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
+    borderTopColor: '#F0F0F0',
+    paddingHorizontal: 14,
+    paddingVertical: 8,
     flexDirection: 'row',
     alignItems: 'center',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 4,
+    elevation: 4,
   },
   left: {
     flexDirection: 'row',
     alignItems: 'center',
-    width: 74,
+    marginRight: 10,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 1,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
     borderColor: '#D1D5DB',
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
-    marginRight: 8,
+    marginRight: 6,
   },
   checkboxChecked: {
-    borderColor: '#FF4D4F',
-    backgroundColor: '#FF4D4F',
-  },
-  checkboxInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: '#fff',
+    borderColor: '#EE4D2D',
+    backgroundColor: '#EE4D2D',
   },
   allText: {
     fontSize: 13,
-    color: '#111827',
+    color: '#374151',
+    fontWeight: '500',
   },
   center: {
     flex: 1,
@@ -90,18 +94,27 @@ const styles = StyleSheet.create({
     color: '#6B7280',
   },
   totalPrice: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#EF4444',
-    marginTop: 2,
+    color: '#EE4D2D',
+    marginTop: 1,
   },
   button: {
     height: 44,
-    paddingHorizontal: 16,
-    borderRadius: 10,
-    backgroundColor: '#FF5A5F',
+    paddingHorizontal: 20,
+    borderRadius: 22,
+    backgroundColor: '#EE4D2D',
     alignItems: 'center',
     justifyContent: 'center',
+    shadowColor: '#EE4D2D',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  buttonDisabled: {
+    backgroundColor: '#D1D5DB',
+    shadowOpacity: 0,
   },
   buttonText: {
     color: '#fff',

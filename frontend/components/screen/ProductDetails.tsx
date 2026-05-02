@@ -5,7 +5,8 @@ import ProductCard, { Product } from '../common/ProductCard';
 import { getProductById, getProducts, ProductDTO, formatPriceFull, formatSold } from '../../lib/productApi';
 import { toggleFavorite, getFavoriteStatus } from '../../lib/wishlistApi';
 import { getProductReviews } from '../../lib/reviewApi';
-import { ProductReviewItemResponse } from '../../lib/mockData';
+import { ProductReviewItemResponse, ShopDTO } from '../../lib/mockData';
+import { getShopById } from '../../lib/shopApi';
 import { addToCart } from '../../lib/cartApi';
 import { useRouter } from 'expo-router';
 
@@ -17,6 +18,7 @@ interface ProductDetailsProps {
 
 const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
   const [product, setProduct] = useState<ProductDTO | null>(null);
+  const [shop, setShop] = useState<ShopDTO | null>(null);
   const [relatedProducts, setRelatedProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeImageIdx, setActiveImageIdx] = useState(0);
@@ -25,6 +27,8 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
   const [reviews, setReviews] = useState<ProductReviewItemResponse[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(false);
   const [addingToCart, setAddingToCart] = useState(false);
+  const [isLightboxVisible, setIsLightboxVisible] = useState(false);
+  const [reviewFilter, setReviewFilter] = useState<number | 'all'>('all');
   
   // Selection Modal states
   const [isSelectionModalVisible, setIsSelectionModalVisible] = useState(false);
@@ -43,6 +47,12 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
       setLoading(true);
       const data = await getProductById(productId);
       setProduct(data);
+
+      // Load shop details
+      try {
+        const shopData = await getShopById(data.shopId);
+        setShop(shopData);
+      } catch (err) { console.log('Failed to load shop:', err); }
 
       // Load favorite status
       try {
@@ -86,6 +96,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
       setLoading(false);
     }
   };
+
+  const filteredReviews = reviewFilter === 'all' 
+    ? reviews 
+    : reviews.filter(r => Math.floor(r.rating) === reviewFilter);
 
   if (loading) {
     return (
@@ -160,6 +174,20 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
             ))}
           </View>
         </View>
+
+      {/* Image Lightbox */}
+      <Modal visible={isLightboxVisible} transparent={true} animationType="fade">
+        <View style={styles.lightboxBg}>
+          <TouchableOpacity style={styles.closeLightbox} onPress={() => setIsLightboxVisible(false)}>
+            <Ionicons name="close" size={32} color="#FFF" />
+          </TouchableOpacity>
+          <Image 
+            source={{ uri: thumbnails[activeImageIdx] }} 
+            style={styles.lightboxImage} 
+            resizeMode="contain" 
+          />
+        </View>
+      </Modal>
 
         {/* Basic Info */}
         <View style={styles.sectionHeader}>
@@ -289,14 +317,18 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
         {/* Shop Info */}
         <View style={styles.shopSection}>
           <View style={styles.shopAvatar}>
-            <Text style={styles.shopAvatarInitials}>GV</Text>
+            {shop?.logoUrl ? (
+              <Image source={{ uri: shop.logoUrl }} style={styles.avatarImage} />
+            ) : (
+              <Text style={styles.shopAvatarInitials}>{shop?.name?.[0] || 'S'}</Text>
+            )}
           </View>
           <View style={styles.shopInfoCenter}>
-            <Text style={styles.shopName}>GearVN Official</Text>
+            <Text style={styles.shopName}>{shop?.name || 'Đang tải...'}</Text>
             <Text style={styles.shopOnlineStatus}>ONLINE 5 PHÚT TRƯỚC</Text>
             <View style={styles.shopStats}>
-              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>3949</Text> Sản phẩm</Text>
-              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>4.8</Text> Đánh giá</Text>
+              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>3.9k</Text> Sản phẩm</Text>
+              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{shop?.rating || 5.0}</Text> Đánh giá</Text>
             </View>
           </View>
           <TouchableOpacity 
@@ -356,6 +388,22 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
               <Text style={styles.viewAllTextRed}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
+          
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.filterScroll} contentContainerStyle={styles.filterContent}>
+            {['Tất cả', '5 sao', '4 sao', '3 sao', '2 sao', '1 sao'].map((label, idx) => {
+              const val = idx === 0 ? 'all' : 6 - idx;
+              const isActive = reviewFilter === val;
+              return (
+                <TouchableOpacity 
+                  key={label} 
+                  style={[styles.filterChip, isActive && styles.activeFilterChip]}
+                  onPress={() => setReviewFilter(val as any)}
+                >
+                  <Text style={[styles.filterChipText, isActive && styles.activeFilterChipText]}>{label}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </ScrollView>
 
           <View style={styles.ratingSummary}>
             <View style={styles.ratingBig}>
@@ -386,9 +434,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
 
           {reviewsLoading ? (
             <ActivityIndicator size="small" color="#F83758" style={{ marginVertical: 10 }} />
-          ) : reviews.length > 0 ? (
+          ) : filteredReviews.length > 0 ? (
             <View style={styles.reviewList}>
-              {reviews.map((item) => (
+              {filteredReviews.map((item) => (
                 <View key={item.id} style={styles.reviewItem}>
                   <View style={styles.reviewHeader}>
                     <View style={styles.reviewerAvatar}>
@@ -584,7 +632,19 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
 
       {/* Bottom Floating Bar */}
       <View style={styles.bottomBar}>
-        <TouchableOpacity style={styles.bottomBarIconAction} onPress={() => router.push('/chat')}>
+        <TouchableOpacity 
+          style={styles.bottomBarIconAction} 
+          onPress={() => {
+            if (shop?.ownerId) {
+              router.push({
+                pathname: '/chat/[id]',
+                params: { id: shop.ownerId.toString(), name: shop.name }
+              } as any);
+            } else {
+              router.push('/chat');
+            }
+          }}
+        >
           <Ionicons name="chatbubble-ellipses-outline" size={22} color="#555" />
           <Text style={styles.bottomBarIconText}>Chat ngay</Text>
         </TouchableOpacity>
@@ -863,10 +923,15 @@ const styles = StyleSheet.create({
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: '#F0F0F0',
+    backgroundColor: '#F1F5FF',
     justifyContent: 'center',
     alignItems: 'center',
     marginRight: 12,
+    overflow: 'hidden',
+  },
+  avatarImage: {
+    width: '100%',
+    height: '100%',
   },
   shopAvatarInitials: {
     color: '#999',
@@ -1284,6 +1349,48 @@ const styles = StyleSheet.create({
     color: '#FFF',
     fontSize: 16,
     fontWeight: 'bold',
+  },
+  filterScroll: {
+    marginBottom: 16,
+  },
+  filterContent: {
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 16,
+    backgroundColor: '#F5F5F5',
+    borderWidth: 1,
+    borderColor: '#EEEEEE',
+  },
+  activeFilterChip: {
+    backgroundColor: '#FFF0F3',
+    borderColor: '#F83758',
+  },
+  filterChipText: {
+    fontSize: 12,
+    color: '#666',
+  },
+  activeFilterChipText: {
+    color: '#F83758',
+    fontWeight: '600',
+  },
+  lightboxBg: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.9)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  closeLightbox: {
+    position: 'absolute',
+    top: 50,
+    right: 20,
+    zIndex: 10,
+  },
+  lightboxImage: {
+    width: '100%',
+    height: '80%',
   },
 });
 

@@ -107,6 +107,14 @@ const BuyerAccountScreen: React.FC = () => {
             <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
           </TouchableOpacity>
 
+          <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/followed-shops' as any)}>
+            <View style={styles.menuLeft}>
+              <Ionicons name="heart-outline" size={20} color="#ef476f" />
+              <Text style={styles.menuText}>Đang theo dõi (Shop)</Text>
+            </View>
+            <Ionicons name="chevron-forward" size={18} color="#9ca3af" />
+          </TouchableOpacity>
+
           <TouchableOpacity style={styles.menuItem} onPress={() => router.push('/register-shop' as any)}>
             <View style={styles.menuLeft}>
               <Ionicons name="storefront-outline" size={20} color="#10b981" />

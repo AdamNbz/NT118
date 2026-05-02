@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Dimensions } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Share, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 
@@ -35,17 +35,17 @@ const ProductCard: React.FC<ProductCardProps> = ({
   isFavorited,
   onToggleFavorite,
 }) => {
-  const cardWidth = isHorizontal ? 180 : (width - 40) / 2;
+  const cardWidth = isHorizontal ? 160 : (width - 36) / 2;
 
   return (
     <TouchableOpacity
       style={[
         styles.productCard,
         isHorizontal ? styles.horizontalCard : { width: cardWidth },
-        isMasonry && { marginBottom: 12 }
+        isMasonry && { marginBottom: 10 }
       ]}
       onPress={() => onPress?.(product)}
-      activeOpacity={0.9}
+      activeOpacity={0.85}
     >
       <View style={[
         styles.productImageContainer,
@@ -65,20 +65,23 @@ const ProductCard: React.FC<ProductCardProps> = ({
           </View>
         )}
 
-        <View style={styles.imageOverlay} />
-        
-        {onToggleFavorite && (
-          <TouchableOpacity
-            style={styles.heartButton}
-            onPress={(e) => { e.stopPropagation?.(); onToggleFavorite(product); }}
-          >
-            <Ionicons
-              name={isFavorited ? 'heart' : 'heart-outline'}
-              size={16}
-              color={isFavorited ? '#FF4D4F' : '#666'}
-            />
-          </TouchableOpacity>
-        )}
+        <TouchableOpacity
+          style={[styles.heartButton, isFavorited && styles.heartButtonActive]}
+          onPress={(e) => { 
+            e.stopPropagation?.(); 
+            if (onToggleFavorite) {
+              onToggleFavorite(product);
+            } else {
+              Alert.alert('Yêu thích', 'Vui lòng đăng nhập để thêm vào yêu thích.');
+            }
+          }}
+        >
+          <Ionicons
+            name={isFavorited ? 'heart' : 'heart-outline'}
+            size={16}
+            color={isFavorited ? '#FFF' : '#888'}
+          />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.productInfo}>
@@ -116,20 +119,20 @@ const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   productCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 12,
-    marginBottom: 16,
+    borderRadius: 10,
+    marginBottom: 10,
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+    borderWidth: 0.5,
+    borderColor: '#ECECEC',
   },
   horizontalCard: {
-    width: 180,
-    marginRight: 12,
+    width: 160,
+    marginRight: 10,
     marginBottom: 4,
   },
   productImageContainer: {
@@ -141,67 +144,62 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
   },
-  imageOverlay: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: 'rgba(0,0,0,0.02)',
-  },
   discountBadge: {
     position: 'absolute',
     top: 0,
     right: 0,
-    backgroundColor: 'rgba(255, 77, 79, 0.9)',
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderBottomLeftRadius: 10,
+    backgroundColor: 'rgba(238, 77, 45, 0.92)',
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderBottomLeftRadius: 8,
     zIndex: 2,
   },
   discountBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
     fontWeight: '800',
-    textTransform: 'uppercase',
   },
   heartButton: {
     position: 'absolute',
     bottom: 8,
     right: 8,
-    backgroundColor: 'rgba(255,255,255,0.95)',
-    borderRadius: 15,
-    width: 30,
-    height: 30,
+    backgroundColor: 'rgba(255,255,255,0.92)',
+    borderRadius: 14,
+    width: 28,
+    height: 28,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.12,
+    shadowRadius: 2,
     elevation: 2,
     zIndex: 2,
   },
+  heartButtonActive: {
+    backgroundColor: '#FF4D4F',
+  },
   productInfo: {
-    padding: 10,
+    padding: 8,
   },
   productName: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     lineHeight: 18,
-    color: '#374151',
-    height: 36,
-    marginBottom: 6,
+    color: '#1F2937',
+    marginBottom: 4,
   },
   priceContainer: {
-    marginBottom: 8,
-    minHeight: 40,
-    justifyContent: 'center',
+    marginBottom: 4,
   },
   mainPrice: {
     flexDirection: 'row',
     alignItems: 'baseline',
   },
   currencySymbol: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
-    color: '#FF4D4F',
+    color: '#EE4D2D',
     marginRight: 1,
   },
   productPrice: {
@@ -210,10 +208,10 @@ const styles = StyleSheet.create({
     color: '#EE4D2D',
   },
   originalPrice: {
-    fontSize: 11,
-    color: '#999',
+    fontSize: 12,
+    color: '#9CA3AF',
     textDecorationLine: 'line-through',
-    marginTop: 1,
+    marginTop: 2,
   },
   footerRow: {
     flexDirection: 'row',
@@ -223,21 +221,21 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     backgroundColor: '#FFFBEB',
-    paddingHorizontal: 6,
-    paddingVertical: 3,
-    borderRadius: 6,
+    paddingHorizontal: 5,
+    paddingVertical: 2,
+    borderRadius: 4,
   },
   ratingText: {
     fontSize: 11,
     fontWeight: '700',
     color: '#D97706',
-    marginLeft: 3,
+    marginLeft: 2,
   },
   divider: {
     width: 1,
-    height: 12,
+    height: 10,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 8,
+    marginHorizontal: 6,
   },
   soldText: {
     fontSize: 11,

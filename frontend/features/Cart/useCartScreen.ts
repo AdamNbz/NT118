@@ -161,6 +161,22 @@ export default function useCartScreen() {
     }
   };
 
+  const handleDeleteItem = async (itemId: string) => {
+    try {
+      const success = await deleteCartItem(parseInt(itemId));
+      if (success) {
+        setSections(prev => {
+          return prev.map(section => ({
+            ...section,
+            items: section.items.filter(item => item.id !== itemId)
+          })).filter(section => section.items.length > 0);
+        });
+      }
+    } catch (error) {
+      console.error('Failed to delete cart item:', error);
+    }
+  };
+
   return {
     sections,
     summary,
@@ -177,5 +193,6 @@ export default function useCartScreen() {
     handlePressItem,
     handleCheckout,
     handleDeleteShop,
+    handleDeleteItem,
   };
 }

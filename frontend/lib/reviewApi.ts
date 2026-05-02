@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 import { MOCK_REVIEWS, ProductReviewItemResponse } from './mockData';
 
 // Toggle to use mock data for testing
-const USE_MOCK = false;
+const USE_MOCK = true;
 
 export interface CreateReviewRequest {
   orderId: number;

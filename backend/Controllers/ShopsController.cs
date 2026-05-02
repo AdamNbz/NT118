@@ -117,4 +117,49 @@ public class ShopsController(AppDbContext db) : ControllerBase
 
         return Ok(shop);
     }
+
+    [Authorize]
+    [HttpGet("followed")]
+    public async Task<IActionResult> GetFollowedShops(CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var shops = await db.Follows
+            .AsNoTracking()
+            .Where(x => x.UserId == userId)
+            .OrderByDescending(x => x.CreatedAt)
+            .Select(x => x.Shop)
+            .Select(x => new ShopResponse(
+                x.Id,
+                x.Name,
+                x.Slug,
+                x.Description,
+                x.LogoUrl,
+                x.CoverImageUrl,
+                x.Address,
+                x.Rating,
+                x.TotalReviews,
+                x.TotalProducts,
+                x.IsVerified,
+                x.CreatedAt))
+            .ToListAsync(cancellationToken);
+
+        return Ok(shops);
+    }
+
+    [Authorize]
+    [HttpGet("{id:long}/follow-status")]
+    public async Task<IActionResult> GetFollowStatus(long id, CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var follow = await db.Follows
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.UserId == userId && x.ShopId == id, cancellationToken);
+
+        return Ok(new FollowStatusResponse(follow != null, follow?.CreatedAt));
+    }
 }
+

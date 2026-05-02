@@ -1,6 +1,8 @@
 import { apiClient } from './apiClient';
 import { ProductDTO } from './productApi';
 
+const USE_MOCK = true;
+
 // ─── Favorites (heart toggle) ──────────────────────────────────
 
 export interface FavoriteProduct {
@@ -35,6 +37,28 @@ export interface FavoritesResponse {
 }
 
 export async function getFavorites(page = 1, pageSize = 20): Promise<FavoritesResponse> {
+  if (USE_MOCK) {
+    return {
+      data: [
+        {
+          favoriteId: 1,
+          favoritedAt: new Date().toISOString(),
+          product: {
+            id: 1,
+            name: 'Áo thun Cotton Basic Unisex',
+            price: 150000,
+            originalPrice: 200000,
+            discount: 25,
+            rating: 4.5,
+            soldQuantity: 150,
+            brand: 'ShopeeLite',
+            image: 'https://picsum.photos/200',
+          }
+        }
+      ],
+      pagination: { page, pageSize, total: 1, totalPages: 1 }
+    };
+  }
   const res = await apiClient.get('/api/favorites', { params: { page, pageSize } });
   return res.data;
 }

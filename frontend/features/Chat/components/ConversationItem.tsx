@@ -5,11 +5,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 
 export type Conversation = {
   id: string;
+  partnerId?: number;
   name: string;
   lastMessage: string;
   time: string;
   unreadCount?: number;
-  avatar?: any;
+  avatar?: string | null;
   isAI?: boolean;
 };
 
@@ -31,23 +32,23 @@ const ConversationItem: React.FC<Props> = ({ item, onPress }) => {
           </LinearGradient>
         ) : (
           <Image 
-            source={item.avatar || { uri: 'https://i.pravatar.cc/150' }} 
+            source={item.avatar ? { uri: item.avatar } : { uri: `https://i.pravatar.cc/150?u=${item.partnerId || item.id}` }} 
             style={styles.avatar} 
           />
         )}
-        {item.unreadCount && item.unreadCount > 0 ? (
+        {(item.unreadCount ?? 0) > 0 ? (
           <View style={styles.unreadBadge}>
-            <Text style={styles.unreadText}>{item.unreadCount}</Text>
+            <Text style={styles.unreadText}>{item.unreadCount! > 9 ? '9+' : item.unreadCount}</Text>
           </View>
         ) : null}
       </View>
 
       <View style={styles.content}>
         <View style={styles.header}>
-          <Text style={styles.name} numberOfLines={1}>{item.name}</Text>
+          <Text style={[styles.name, (item.unreadCount ?? 0) > 0 && styles.nameBold]} numberOfLines={1}>{item.name}</Text>
           <Text style={styles.time}>{item.time}</Text>
         </View>
-        <Text style={styles.lastMessage} numberOfLines={1}>
+        <Text style={[styles.lastMessage, (item.unreadCount ?? 0) > 0 && styles.lastMessageUnread]} numberOfLines={1}>
           {item.lastMessage}
         </Text>
       </View>
@@ -101,6 +102,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     borderWidth: 2,
     borderColor: '#FFFFFF',
+    paddingHorizontal: 3,
   },
   unreadText: {
     color: '#FFFFFF',
@@ -119,10 +121,13 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 16,
-    fontWeight: '700',
+    fontWeight: '600',
     color: '#1B1530',
     flex: 1,
     marginRight: 8,
+  },
+  nameBold: {
+    fontWeight: '800',
   },
   time: {
     fontSize: 12,
@@ -131,6 +136,10 @@ const styles = StyleSheet.create({
   lastMessage: {
     fontSize: 14,
     color: '#6B6486',
+  },
+  lastMessageUnread: {
+    color: '#1B1530',
+    fontWeight: '600',
   },
 });
 

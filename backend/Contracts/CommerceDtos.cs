@@ -146,3 +146,20 @@ public record CreateSellerProductRequest(
     [property: Range(typeof(decimal), "0.01", "999999999")] decimal Price,
     decimal? OriginalPrice,
     [property: Range(0, 1000000)] int StockQuantity);
+
+public record ShopResponse(
+    long Id,
+    string Name,
+    string Slug,
+    string? Description,
+    string? LogoUrl,
+    string? CoverImageUrl,
+    string? Address,
+    decimal Rating,
+    int TotalReviews,
+    int TotalProducts,
+    bool IsVerified,
+    DateTime CreatedAt);
+
+public record FollowStatusResponse(bool IsFollowing, DateTime? FollowedAt);
+

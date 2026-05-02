@@ -1,40 +1,115 @@
-import React, { useState } from 'react';
-import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import ConversationItem, { Conversation } from '../components/ConversationItem';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getConversations, ConversationDTO, useChatSignalR, RealtimeMessage } from '../../../lib/messageApi';
+
+// AI assistant entry (always shown at top)
+const AI_CONVERSATION: Conversation = {
+  id: 'ai-assistant',
+  name: 'Hỗ trợ khách hàng',
+  lastMessage: 'Xin chào 👋 ShopeeLite có thể giúp gì cho bạn?',
+  time: 'Luôn trực tuyến',
+  isAI: true,
+};
+
+function formatMessageTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - date.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  const diffHours = Math.floor(diffMs / 3600000);
+  const diffDays = Math.floor(diffMs / 86400000);
+
+  if (diffMins < 1) return 'Vừa xong';
+  if (diffMins < 60) return `${diffMins} phút`;
+  if (diffHours < 24) return `${diffHours} giờ`;
+  if (diffDays < 7) return `${diffDays} ngày`;
+  return date.toLocaleDateString('vi-VN', { day: '2-digit', month: '2-digit' });
+}
+
+function dtoToConversation(dto: ConversationDTO): Conversation {
+  return {
+    id: dto.partnerId.toString(),
+    partnerId: dto.partnerId,
+    name: dto.partnerName,
+    lastMessage: dto.lastMessage || '',
+    time: formatMessageTime(dto.lastMessageTime),
+    unreadCount: dto.unreadCount,
+    avatar: dto.partnerAvatar,
+  };
+}
 
 const ConversationListScreen = () => {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
+  const [conversations, setConversations] = useState<Conversation[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  // Dữ liệu mẫu - Sẽ được thay thế bằng dữ liệu thật từ API sau
-  const [conversations] = useState<Conversation[]>([
-    {
-      id: 'ai-assistant',
-      name: 'Hỗ trợ khách hàng',
-      lastMessage: 'Xin chào 👋 ShopeeLite có thể giúp gì cho bạn?',
-      time: 'Vừa xong',
-      isAI: true,
-    },
-    {
-      id: '1',
-      name: 'Shop Thời Trang Nam',
-      lastMessage: 'Dạ sản phẩm này còn size L ạ.',
-      time: '10:30',
-      unreadCount: 2,
-    },
-    {
-      id: '2',
-      name: 'Phụ kiện SunSide',
-      lastMessage: 'Cảm ơn bạn đã mua hàng!',
-      time: 'Hôm qua',
-    },
-  ]);
+  const loadConversations = useCallback(async () => {
+    try {
+      const data = await getConversations();
+      setConversations(data.map(dtoToConversation));
+    } catch (e) {
+      console.log('Failed to load conversations:', e);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
+  }, []);
 
-  const filteredConversations = conversations.filter(c => 
+  useEffect(() => {
+    loadConversations();
+  }, [loadConversations]);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    loadConversations();
+  };
+
+  // Listen for real-time messages to update conversation list
+  useChatSignalR(useCallback((msg: RealtimeMessage) => {
+    setConversations(prev => {
+      const partnerId = msg.senderId;
+      const existing = prev.find(c => c.partnerId === partnerId);
+      
+      if (existing) {
+        // Update existing conversation
+        const updated = prev.map(c => 
+          c.partnerId === partnerId
+            ? {
+                ...c,
+                lastMessage: msg.content || '',
+                time: 'Vừa xong',
+                unreadCount: (c.unreadCount || 0) + 1,
+              }
+            : c
+        );
+        // Move to top
+        const target = updated.find(c => c.partnerId === partnerId)!;
+        return [target, ...updated.filter(c => c.partnerId !== partnerId)];
+      } else {
+        // New conversation - add to top
+        const newConv: Conversation = {
+          id: partnerId.toString(),
+          partnerId,
+          name: `User #${partnerId}`,
+          lastMessage: msg.content || '',
+          time: 'Vừa xong',
+          unreadCount: 1,
+        };
+        return [newConv, ...prev];
+      }
+    });
+  }, []));
+
+  const allConversations = [AI_CONVERSATION, ...conversations];
+
+  const filteredConversations = allConversations.filter(c => 
     c.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -44,7 +119,7 @@ const ConversationListScreen = () => {
     } else {
       router.push({
         pathname: '/chat/[id]',
-        params: { id: item.id, name: item.name }
+        params: { id: item.partnerId?.toString() || item.id, name: item.name }
       });
     }
   };
@@ -83,21 +158,31 @@ const ConversationListScreen = () => {
         </View>
 
         {/* List */}
-        <FlatList
-          data={filteredConversations}
-          keyExtractor={(item) => item.id}
-          renderItem={({ item }) => (
-            <ConversationItem item={item} onPress={() => handlePress(item)} />
-          )}
-          contentContainerStyle={styles.listContent}
-          showsVerticalScrollIndicator={false}
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Feather name="message-square" size={48} color="#E5E1F2" />
-              <Text style={styles.emptyText}>Chưa có cuộc hội thoại nào</Text>
-            </View>
-          }
-        />
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color="#7C5CFF" />
+            <Text style={styles.loadingText}>Đang tải tin nhắn...</Text>
+          </View>
+        ) : (
+          <FlatList
+            data={filteredConversations}
+            keyExtractor={(item) => item.id}
+            renderItem={({ item }) => (
+              <ConversationItem item={item} onPress={() => handlePress(item)} />
+            )}
+            contentContainerStyle={styles.listContent}
+            showsVerticalScrollIndicator={false}
+            refreshControl={
+              <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#7C5CFF']} />
+            }
+            ListEmptyComponent={
+              <View style={styles.emptyContainer}>
+                <Feather name="message-square" size={48} color="#E5E1F2" />
+                <Text style={styles.emptyText}>Chưa có cuộc hội thoại nào</Text>
+              </View>
+            }
+          />
+        )}
       </SafeAreaView>
     </View>
   );
@@ -159,6 +244,16 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 16,
     paddingBottom: 20,
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    color: '#A29DBA',
   },
   emptyContainer: {
     alignItems: 'center',

@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 import { MOCK_PRODUCTS } from './mockData';
 
 // Toggle to use mock data for testing
-const USE_MOCK = false;
+const USE_MOCK = true;
 
 export interface ViewHistoryItemDTO {
   productId: number;

@@ -8,7 +8,9 @@ import {
   Dimensions, 
   TouchableOpacity,
   RefreshControl,
-  StatusBar
+  StatusBar,
+  NativeSyntheticEvent,
+  NativeScrollEvent
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -23,6 +25,7 @@ import SpecialOffer from '../common/SpecialOffer';
 import PromotionBanner from '../common/PromotionBanner';
 import WishlistBanner from '../common/WishlistBanner';
 import NewArrivalsCard from '../common/NewArrivalsCard';
+import Skeleton from '../common/Skeleton';
 import { getProducts, getFeaturedProducts, ProductDTO, formatPrice, formatSold } from '../../lib/productApi';
 import { userApi, UserProfileDTO } from '../../lib/userApi';
 
@@ -83,6 +86,11 @@ const HomePage = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [isSearchVisible, setIsSearchVisible] = useState(false);
+  
+  // Pagination for suggested products
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
   const { width } = Dimensions.get('window');
 
   const loadData = useCallback(async () => {
@@ -99,6 +107,9 @@ const HomePage = () => {
       setFeaturedProducts(featured.map(toCardProduct));
       setNewestProducts(newest.data.map(toCardProduct));
       setSuggestedProducts(suggested.data.map(toCardProduct));
+      setPage(1);
+      setHasMore(suggested.pagination.page < suggested.pagination.totalPages);
+
       if (favs && favs.data) {
         setFavoriteIds(new Set(favs.data.map((f: any) => f.product.id)));
       }
@@ -109,6 +120,37 @@ const HomePage = () => {
       setRefreshing(false);
     }
   }, []);
+
+  const loadMoreSuggested = async () => {
+    if (loadingMore || !hasMore) return;
+    
+    try {
+      setLoadingMore(true);
+      const nextPage = page + 1;
+      const res = await getProducts({ page: nextPage, pageSize: 6, sort: 'popular' });
+      
+      if (res.data.length > 0) {
+        setSuggestedProducts(prev => [...prev, ...res.data.map(toCardProduct)]);
+        setPage(nextPage);
+        setHasMore(res.pagination.page < res.pagination.totalPages);
+      } else {
+        setHasMore(false);
+      }
+    } catch (e) {
+      console.log('Load more failed', e);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  const handleScroll = (event: NativeSyntheticEvent<NativeScrollEvent>) => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isCloseToBottom = layoutMeasurement.height + contentOffset.y >= contentSize.height - 200;
+    
+    if (isCloseToBottom) {
+      loadMoreSuggested();
+    }
+  };
 
   useEffect(() => {
     loadData();
@@ -203,6 +245,8 @@ const HomePage = () => {
       <ScrollView 
         showsVerticalScrollIndicator={false}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F73658']} />}
+        onScroll={handleScroll}
+        scrollEventThrottle={16}
       >
         <TouchableOpacity 
           onPress={() => setIsSearchVisible(true)} 
@@ -238,7 +282,13 @@ const HomePage = () => {
         />
 
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color="#F73658" style={{ marginVertical: 20 }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={{ marginRight: 16 }}>
+                <Skeleton width={180} height={240} borderRadius={16} />
+              </View>
+            ))}
+          </ScrollView>
         ) : (
           <ScrollView
             horizontal
@@ -272,7 +322,13 @@ const HomePage = () => {
         />
 
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color="#F73658" style={{ marginVertical: 20 }} />
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.horizontalList}>
+            {[1, 2, 3].map(i => (
+              <View key={i} style={{ marginRight: 16 }}>
+                <Skeleton width={180} height={240} borderRadius={16} />
+              </View>
+            ))}
+          </ScrollView>
         ) : (
           <ScrollView
             horizontal
@@ -298,20 +354,36 @@ const HomePage = () => {
         />
 
         {loading && !refreshing ? (
-          <ActivityIndicator size="large" color="#F73658" style={{ marginVertical: 20 }} />
-        ) : (
           <View style={styles.masonryContainer}>
             <View style={[styles.column, { width: (width - 40) / 2 }]}>
-              {suggestedProducts.filter((_, i) => i % 2 === 0).map((product) => (
-                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
-              ))}
+              <Skeleton width="100%" height={260} borderRadius={16} style={{ marginBottom: 16 }} />
+              <Skeleton width="100%" height={220} borderRadius={16} style={{ marginBottom: 16 }} />
             </View>
             <View style={[styles.column, { width: (width - 40) / 2 }]}>
-              {suggestedProducts.filter((_, i) => i % 2 !== 0).map((product) => (
-                <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
-              ))}
+              <Skeleton width="100%" height={220} borderRadius={16} style={{ marginBottom: 16 }} />
+              <Skeleton width="100%" height={260} borderRadius={16} style={{ marginBottom: 16 }} />
             </View>
           </View>
+        ) : (
+          <>
+            <View style={styles.masonryContainer}>
+              <View style={[styles.column, { width: (width - 40) / 2 }]}>
+                {suggestedProducts.filter((_, i) => i % 2 === 0).map((product) => (
+                  <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
+                ))}
+              </View>
+              <View style={[styles.column, { width: (width - 40) / 2 }]}>
+                {suggestedProducts.filter((_, i) => i % 2 !== 0).map((product) => (
+                  <ProductCard key={product.id} product={product} isMasonry={true} onPress={handleProductPress} isFavorited={favoriteIds.has(Number(product.id))} onToggleFavorite={handleToggleFavorite} />
+                ))}
+              </View>
+            </View>
+            {loadingMore && (
+              <View style={{ paddingVertical: 20, alignItems: 'center' }}>
+                <ActivityIndicator color="#F73658" />
+              </View>
+            )}
+          </>
         )}
 
         <View style={{ height: 120 }} />

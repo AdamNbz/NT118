@@ -1,9 +1,11 @@
 using Backend.Contracts;
 using Backend.Data;
+using Backend.Hubs;
 using Backend.Models;
 using Backend.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.EntityFrameworkCore;
 
 namespace Backend.Controllers;
@@ -11,10 +13,74 @@ namespace Backend.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/messages")]
-public class MessagesController(AppDbContext db, INotificationRealtimeService realtimeNotifications) : ControllerBase
+public class MessagesController(
+    AppDbContext db,
+    INotificationRealtimeService realtimeNotifications,
+    IHubContext<NotificationHub> hubContext) : ControllerBase
 {
+    // ── GET /api/messages/conversations ─────────────────────────────
+    [HttpGet("conversations")]
+    public async Task<ActionResult<IReadOnlyList<object>>> GetConversations(CancellationToken ct)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        // Get all messages involving this user
+        var conversations = await db.Messages
+            .AsNoTracking()
+            .Where(m => m.SenderId == userId || m.ReceiverId == userId)
+            .GroupBy(m => m.SenderId == userId ? m.ReceiverId : m.SenderId)
+            .Select(g => new
+            {
+                PartnerId = g.Key,
+                LastMessage = g.OrderByDescending(m => m.SentAt).First().Content,
+                LastMessageTime = g.OrderByDescending(m => m.SentAt).First().SentAt,
+                UnreadCount = g.Count(m => m.ReceiverId == userId && !m.IsRead),
+            })
+            .OrderByDescending(c => c.LastMessageTime)
+            .ToListAsync(ct);
+
+        // Fetch partner user info
+        var partnerIds = conversations.Select(c => c.PartnerId).ToList();
+        var users = await db.Users
+            .AsNoTracking()
+            .Where(u => partnerIds.Contains(u.Id))
+            .Select(u => new { u.Id, u.Username })
+            .ToListAsync(ct);
+
+        var profiles = await db.Set<UserProfile>()
+            .AsNoTracking()
+            .Where(p => partnerIds.Contains(p.UserId))
+            .Select(p => new { p.UserId, p.FullName, p.AvatarUrl })
+            .ToListAsync(ct);
+
+        var userMap = users.ToDictionary(u => u.Id);
+        var profileMap = profiles.ToDictionary(p => p.UserId);
+
+        var result = conversations.Select(c =>
+        {
+            userMap.TryGetValue(c.PartnerId, out var user);
+            profileMap.TryGetValue(c.PartnerId, out var profile);
+            return new
+            {
+                c.PartnerId,
+                PartnerName = profile?.FullName ?? user?.Username ?? $"User #{c.PartnerId}",
+                PartnerAvatar = profile?.AvatarUrl,
+                c.LastMessage,
+                c.LastMessageTime,
+                c.UnreadCount,
+            };
+        }).ToList();
+
+        return Ok(result);
+    }
+
+    // ── GET /api/messages?receiverId= ──────────────────────────────
     [HttpGet]
-    public async Task<ActionResult<IReadOnlyList<object>>> GetMessages([FromQuery] long? receiverId, CancellationToken cancellationToken)
+    public async Task<ActionResult<IReadOnlyList<object>>> GetMessages(
+        [FromQuery] long? receiverId,
+        [FromQuery] int limit = 100,
+        CancellationToken cancellationToken = default)
     {
         if (!this.TryGetCurrentUserId(out var userId))
             return Unauthorized();
@@ -32,7 +98,7 @@ public class MessagesController(AppDbContext db, INotificationRealtimeService re
 
         var messages = await query
             .OrderByDescending(x => x.SentAt)
-            .Take(100)
+            .Take(limit)
             .Select(x => new
             {
                 x.Id,
@@ -50,6 +116,7 @@ public class MessagesController(AppDbContext db, INotificationRealtimeService re
         return Ok(messages);
     }
 
+    // ── POST /api/messages ─────────────────────────────────────────
     [HttpPost]
     public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest body, CancellationToken cancellationToken)
     {
@@ -78,6 +145,23 @@ public class MessagesController(AppDbContext db, INotificationRealtimeService re
         db.Messages.Add(message);
         await db.SaveChangesAsync(cancellationToken);
 
+        // Push real-time message event to receiver via SignalR
+        var messagePayload = new
+        {
+            message.Id,
+            message.SenderId,
+            message.ReceiverId,
+            message.Content,
+            message.MessageType,
+            message.AttachmentUrl,
+            message.SentAt,
+        };
+
+        var receiverGroup = NotificationHub.BuildUserGroup(body.ReceiverId.ToString());
+        await hubContext.Clients.Group(receiverGroup)
+            .SendAsync("message.received", messagePayload, cancellationToken);
+
+        // Also create a notification
         var notification = new Notification
         {
             UserId = body.ReceiverId,
@@ -104,5 +188,19 @@ public class MessagesController(AppDbContext db, INotificationRealtimeService re
         }, cancellationToken);
 
         return Ok(new { message = "Gửi tin nhắn thành công.", messageId = message.Id });
+    }
+
+    // ── PATCH /api/messages/{receiverId}/read ──────────────────────
+    [HttpPatch("{receiverId:long}/read")]
+    public async Task<IActionResult> MarkConversationRead(long receiverId, CancellationToken ct)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var updated = await db.Messages
+            .Where(m => m.SenderId == receiverId && m.ReceiverId == userId && !m.IsRead)
+            .ExecuteUpdateAsync(s => s.SetProperty(m => m.IsRead, true), ct);
+
+        return Ok(new { message = "Đã đánh dấu đã đọc.", updated });
     }
 }

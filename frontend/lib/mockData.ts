@@ -45,9 +45,9 @@ export const MOCK_PRODUCTS: ProductDTO[] = [
     brand: 'Nike',
     categoryId: 1,
     shopId: 101,
-    image: 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
+    image: 'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/awjogtdnqxniqqk0wpgf/air-max-270-react-shoes-GBx31r.png',
     thumbnails: [
-      'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=800',
+      'https://static.nike.com/a/images/t_PDP_1280_v1/f_auto,q_auto:eco/awjogtdnqxniqqk0wpgf/air-max-270-react-shoes-GBx31r.png',
       'https://images.unsplash.com/photo-1606107557195-0e29a4b5b4aa?w=800',
       'https://images.unsplash.com/photo-1549298916-b41d501d3772?w=800'
     ],
@@ -76,9 +76,9 @@ export const MOCK_PRODUCTS: ProductDTO[] = [
     brand: 'Apple',
     categoryId: 2,
     shopId: 102,
-    image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800',
+    image: 'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-air-select-wifi-blue-202203?wid=940&hei=1112&fmt=png-alpha',
     thumbnails: [
-      'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?w=800',
+      'https://store.storeimages.cdn-apple.com/4982/as-images.apple.com/is/ipad-air-select-wifi-blue-202203?wid=940&hei=1112&fmt=png-alpha',
       'https://images.unsplash.com/photo-1585792180666-f7347c490ee2?w=800'
     ]
   },
@@ -97,9 +97,9 @@ export const MOCK_PRODUCTS: ProductDTO[] = [
     brand: 'Sony',
     categoryId: 2,
     shopId: 103,
-    image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800',
+    image: 'https://m.media-amazon.com/images/I/71o8Q5XJS5L._AC_SL1500_.jpg',
     thumbnails: [
-      'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=800'
+      'https://m.media-amazon.com/images/I/71o8Q5XJS5L._AC_SL1500_.jpg'
     ]
   },
   {
@@ -117,9 +117,9 @@ export const MOCK_PRODUCTS: ProductDTO[] = [
     brand: 'Keychron',
     categoryId: 2,
     shopId: 101,
-    image: 'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=800',
+    image: 'https://m.media-amazon.com/images/I/71WdfQ9JBOL._AC_SL1500_.jpg',
     thumbnails: [
-      'https://images.unsplash.com/photo-1511467687858-23d96c32e4ae?w=800'
+      'https://m.media-amazon.com/images/I/71WdfQ9JBOL._AC_SL1500_.jpg'
     ]
   },
   {
@@ -137,9 +137,9 @@ export const MOCK_PRODUCTS: ProductDTO[] = [
     brand: 'OEM',
     categoryId: 3,
     shopId: 104,
-    image: 'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800',
+    image: 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&q=80',
     thumbnails: [
-      'https://images.unsplash.com/photo-1515377905703-c4788e51af15?w=800'
+      'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=800&q=80'
     ]
   },
   {
@@ -157,9 +157,9 @@ export const MOCK_PRODUCTS: ProductDTO[] = [
     brand: 'Samsung',
     categoryId: 2,
     shopId: 105,
-    image: 'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=800',
+    image: 'https://images.samsung.com/is/image/samsung/p6pim/vn/galaxy-s23-ultra/gallery/vn-galaxy-s23-ultra-s918-sm-s918bzkdxxv-thumb-534863401?$344_344_PNG$',
     thumbnails: [
-      'https://images.unsplash.com/photo-1678911820864-e2c567c655d7?w=800'
+      'https://images.samsung.com/is/image/samsung/p6pim/vn/galaxy-s23-ultra/gallery/vn-galaxy-s23-ultra-s918-sm-s918bzkdxxv-thumb-534863401?$344_344_PNG$'
     ]
   }
 ];

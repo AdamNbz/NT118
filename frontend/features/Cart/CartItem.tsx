@@ -6,7 +6,9 @@ import {
   View,
 } from 'react-native';
 import { Image } from 'expo-image';
+import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from './cart.utils';
+import { Swipeable } from 'react-native-gesture-handler';
 
 type CartItemProps = {
   checked: boolean;
@@ -21,8 +23,8 @@ type CartItemProps = {
   onIncrease?: () => void;
   onDecrease?: () => void;
   onPress?: () => void;
+  onDelete?: () => void;
 };
-
 
 export default function CartItem({
   checked,
@@ -37,110 +39,123 @@ export default function CartItem({
   onIncrease,
   onDecrease,
   onPress,
+  onDelete,
 }: CartItemProps) {
-  return (
-    <View style={styles.container}>
-      <Pressable
-        style={[styles.checkbox, checked && styles.checkboxChecked]}
-        onPress={onToggle}
-      >
-        {checked ? <View style={styles.checkboxInner} /> : null}
+  const renderRightActions = () => {
+    return (
+      <Pressable style={styles.deleteAction} onPress={onDelete}>
+        <Ionicons name="trash-outline" size={24} color="#FFF" />
+        <Text style={styles.deleteText}>Xóa</Text>
       </Pressable>
+    );
+  };
 
-      <Pressable style={styles.card} onPress={onPress}>
-        <Image 
-          source={image} 
-          style={styles.image} 
-          contentFit="cover"
-          transition={200}
-        />
+  return (
+    <Swipeable renderRightActions={renderRightActions} friction={2}>
+      <View style={styles.container}>
+        <Pressable
+          style={[styles.checkbox, checked && styles.checkboxChecked]}
+          onPress={onToggle}
+        >
+          {checked && <Ionicons name="checkmark" size={14} color="#FFF" />}
+        </Pressable>
 
-        <View style={styles.content}>
-          <Text numberOfLines={2} style={[styles.name, disabled && styles.disabledText]}>
-            {name}
-          </Text>
+        <Pressable style={styles.card} onPress={onPress}>
+          <View style={styles.imageWrap}>
+            <Image 
+              source={image} 
+              style={styles.image} 
+              contentFit="cover"
+              transition={200}
+            />
+          </View>
 
-          {!!variant && (
-            <Text style={styles.variant} numberOfLines={1}>
-              {variant}
+          <View style={styles.content}>
+            <Text numberOfLines={2} style={[styles.name, disabled && styles.disabledText]}>
+              {name}
             </Text>
-          )}
 
-          <View style={styles.footer}>
-            <View style={styles.priceBlock}>
-              {originalPrice ? (
-                <Text style={styles.originalPrice}>
-                  {formatPrice(originalPrice)}
+            {!!variant && (
+              <View style={styles.variantBadge}>
+                <Text style={styles.variantText} numberOfLines={1}>
+                  Phân loại: {variant}
                 </Text>
-              ) : null}
+                <Ionicons name="chevron-down" size={12} color="#9CA3AF" />
+              </View>
+            )}
 
-              <Text style={styles.price}>{formatPrice(price)}</Text>
-            </View>
-
-            <View style={styles.stepper}>
-              <Pressable style={styles.stepBtn} onPress={onDecrease}>
-                <Text style={styles.stepText}>-</Text>
-              </Pressable>
-
-              <View style={styles.qtyBox}>
-                <Text style={styles.qtyText}>{quantity}</Text>
+            <View style={styles.footer}>
+              <View style={styles.priceBlock}>
+                <Text style={styles.price}>{formatPrice(price)}</Text>
+                {originalPrice ? (
+                  <Text style={styles.originalPrice}>
+                    {formatPrice(originalPrice)}
+                  </Text>
+                ) : null}
               </View>
 
-              <Pressable style={styles.stepBtn} onPress={onIncrease}>
-                <Text style={styles.stepText}>+</Text>
-              </Pressable>
+              <View style={styles.stepper}>
+                <Pressable 
+                  style={[styles.stepBtn, quantity <= 1 && styles.stepBtnDisabled]} 
+                  onPress={onDecrease}
+                >
+                  <Text style={[styles.stepText, quantity <= 1 && styles.stepTextDisabled]}>−</Text>
+                </Pressable>
+
+                <View style={styles.qtyBox}>
+                  <Text style={styles.qtyText}>{quantity}</Text>
+                </View>
+
+                <Pressable style={styles.stepBtn} onPress={onIncrease}>
+                  <Text style={styles.stepText}>+</Text>
+                </Pressable>
+              </View>
             </View>
           </View>
-        </View>
-      </Pressable>
-    </View>
+        </Pressable>
+      </View>
+    </Swipeable>
   );
 }
-
-const BOX_SIZE = 20;
 
 const styles = StyleSheet.create({
   container: {
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingVertical: 12,
     backgroundColor: '#fff',
   },
   checkbox: {
     width: 22,
     height: 22,
-    borderRadius: 6,
+    borderRadius: 11,
     borderWidth: 1.5,
-    borderColor: '#E5E7EB',
+    borderColor: '#D1D5DB',
     marginRight: 12,
     alignItems: 'center',
     justifyContent: 'center',
     backgroundColor: '#fff',
   },
   checkboxChecked: {
-    borderColor: '#FF4747',
-    backgroundColor: '#FF4747',
-  },
-  checkboxInner: {
-    width: 8,
-    height: 8,
-    borderRadius: 2,
-    backgroundColor: '#fff',
+    borderColor: '#EE4D2D',
+    backgroundColor: '#EE4D2D',
   },
   card: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: '#fff',
+  },
+  imageWrap: {
+    width: 88,
+    height: 88,
+    borderRadius: 10,
+    overflow: 'hidden',
+    backgroundColor: '#F5F5F5',
+    marginRight: 12,
   },
   image: {
-    width: 90,
-    height: 90,
-    borderRadius: 12,
-    backgroundColor: '#F9FAFB',
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: '#F3F4F6',
+    width: '100%',
+    height: '100%',
   },
   content: {
     flex: 1,
@@ -148,25 +163,32 @@ const styles = StyleSheet.create({
   },
   name: {
     fontSize: 14,
-    fontWeight: '600',
+    fontWeight: '500',
     color: '#1F2937',
     lineHeight: 20,
   },
   disabledText: {
     color: '#9CA3AF',
   },
-  variant: {
+  variantBadge: {
     marginTop: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    alignSelf: 'flex-start',
+    backgroundColor: '#F9FAFB',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 4,
+    gap: 4,
+    borderWidth: 0.5,
+    borderColor: '#E5E7EB',
+  },
+  variantText: {
     fontSize: 12,
     color: '#6B7280',
-    backgroundColor: '#F3F4F6',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    alignSelf: 'flex-start',
-    borderRadius: 4,
   },
   footer: {
-    marginTop: 10,
+    marginTop: 8,
     flexDirection: 'row',
     alignItems: 'flex-end',
     justifyContent: 'space-between',
@@ -174,16 +196,16 @@ const styles = StyleSheet.create({
   priceBlock: {
     flex: 1,
   },
+  price: {
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#EE4D2D',
+  },
   originalPrice: {
     fontSize: 11,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
-    marginBottom: 1,
-  },
-  price: {
-    fontSize: 16,
-    fontWeight: '800',
-    color: '#FF4747',
+    marginTop: 1,
   },
   stepper: {
     flexDirection: 'row',
@@ -191,30 +213,52 @@ const styles = StyleSheet.create({
     backgroundColor: '#F9FAFB',
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: '#F3F4F6',
+    borderColor: '#E5E7EB',
     overflow: 'hidden',
   },
   stepBtn: {
-    width: 30,
-    height: 30,
+    width: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  stepBtnDisabled: {
+    opacity: 0.3,
+  },
   stepText: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '500',
     color: '#374151',
   },
+  stepTextDisabled: {
+    color: '#9CA3AF',
+  },
   qtyBox: {
-    minWidth: 36,
-    height: 30,
+    minWidth: 32,
+    height: 32,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
+    borderLeftWidth: 1,
+    borderRightWidth: 1,
+    borderColor: '#E5E7EB',
+    backgroundColor: '#FFF',
   },
   qtyText: {
-    fontSize: 13,
-    fontWeight: '700',
+    fontSize: 14,
+    fontWeight: '600',
     color: '#111827',
+  },
+  deleteAction: {
+    backgroundColor: '#EE4D2D',
+    justifyContent: 'center',
+    alignItems: 'center',
+    width: 80,
+    height: '100%',
+  },
+  deleteText: {
+    color: '#FFF',
+    fontSize: 12,
+    fontWeight: '600',
+    marginTop: 4,
   },
 });

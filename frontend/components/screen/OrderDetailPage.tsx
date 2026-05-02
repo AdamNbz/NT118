@@ -5,6 +5,7 @@ import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { getOrderDetail, updateOrderStatus, OrderDetailResponse as OrderDetailDTO, OrderStatus } from '../../lib/orderApi';
 import { userApi } from '../../lib/userApi';
+import OrderStepper from '../common/OrderStepper';
 
 const OrderDetailPage = () => {
   const router = useRouter();
@@ -131,6 +132,8 @@ const OrderDetailPage = () => {
             color="white" 
           />
         </View>
+
+        <OrderStepper currentStatus={order.status} />
 
         {/* Shipping Address */}
         <View style={styles.section}>

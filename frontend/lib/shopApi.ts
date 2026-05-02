@@ -2,7 +2,7 @@ import { apiClient } from './apiClient';
 import { MOCK_SHOPS, ShopDTO } from './mockData';
 import { ProductDTO, getProducts } from './productApi';
 
-const USE_MOCK = false;
+const USE_MOCK = true;
 
 export interface CreateShopRequest {
   name: string;
@@ -85,3 +85,38 @@ export async function registerShop(data: CreateShopRequest): Promise<{ id: numbe
     throw new Error(err.message || 'Đăng ký shop thất bại.');
   }
 }
+
+/**
+ * Fetch list of shops followed by the current user
+ */
+export async function getFollowedShops(): Promise<ShopDTO[]> {
+  if (USE_MOCK) {
+    return MOCK_SHOPS.slice(0, 3);
+  }
+
+  try {
+    const res = await apiClient.get('/api/shops/followed');
+    return res.data;
+  } catch (err) {
+    console.error('Failed to fetch followed shops:', err);
+    return [];
+  }
+}
+
+/**
+ * Check if the current user follows a specific shop
+ */
+export async function getFollowStatus(shopId: number): Promise<{ isFollowing: boolean; followedAt?: string }> {
+  if (USE_MOCK) {
+    return { isFollowing: false };
+  }
+
+  try {
+    const res = await apiClient.get(`/api/shops/${shopId}/follow-status`);
+    return res.data;
+  } catch (err) {
+    console.error('Failed to fetch follow status:', err);
+    return { isFollowing: false };
+  }
+}
+

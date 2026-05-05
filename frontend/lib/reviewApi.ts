@@ -1,6 +1,6 @@
 import { apiClient } from './apiClient';
 
-const USE_MOCK = false;
+
 
 export interface CreateReviewPayload {
   orderId: number;
@@ -55,9 +55,7 @@ export async function createReview(payload: CreateReviewPayload): Promise<Review
 }
 
 export async function getProductReviews(productId: number, page = 1, pageSize = 10): Promise<ProductReviewsResponse> {
-  if (USE_MOCK) {
-    return { productId, averageRating: 4.5, totalReviews: 2, reviews: [] };
-  }
+
 
   try {
     const res = await apiClient.get(`/api/reviews/${productId}`, { params: { page, pageSize } });

@@ -10,6 +10,7 @@ import { getShopById } from '../../lib/shopApi';
 import { addToCart } from '../../lib/cartApi';
 import { getMyOrders, getOrderDetail } from '../../lib/orderApi';
 import { useRouter } from 'expo-router';
+import ShopVoucherModal from '../common/ShopVoucherModal';
 
 const { width } = Dimensions.get('window');
 
@@ -37,6 +38,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
   const [selectedQuantity, setSelectedQuantity] = useState(1);
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({}); // { "Màu sắc": "Đỏ", "Kích cỡ": "42" }
   const [modalMode, setModalMode] = useState<'cart' | 'buy'>('cart');
+  const [showShopVoucherModal, setShowShopVoucherModal] = useState(false);
   
   const router = useRouter();
 
@@ -265,7 +267,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
         <View style={styles.divider} />
 
         {/* Voucher Section */}
-        <TouchableOpacity style={styles.rowSection}>
+        <TouchableOpacity style={styles.rowSection} onPress={() => setShowShopVoucherModal(true)}>
           <Text style={styles.rowLabel}>Voucher của Shop</Text>
           <View style={styles.voucherTagsContainer}>
             <View style={styles.voucherTag}>
@@ -290,30 +292,6 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
         </View>
 
         <View style={styles.divider} />
-
-        {/* Shop Info Section */}
-        {product.shopId && (
-          <>
-            <View style={styles.shopSection}>
-              <View style={styles.shopRow}>
-                <View style={styles.shopAvatar}>
-                  <Ionicons name="storefront-outline" size={24} color="#555" />
-                </View>
-                <View style={styles.shopInfo}>
-                  <Text style={styles.shopNameText}>Cửa hàng của sản phẩm</Text>
-                  <Text style={styles.shopActiveText}>Online 5 phút trước</Text>
-                </View>
-                <TouchableOpacity 
-                  style={styles.viewShopButton}
-                  onPress={() => router.push(`/shop/${product.shopId}` as any)}
-                >
-                  <Text style={styles.viewShopText}>Xem Shop</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-            <View style={styles.divider} />
-          </>
-        )}
 
         {/* Stock & Brand Info */}
         <View style={styles.variationSection}>
@@ -344,8 +322,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
             <Text style={styles.shopName}>{shop?.name || 'Đang tải...'}</Text>
             <Text style={styles.shopOnlineStatus}>ONLINE 5 PHÚT TRƯỚC</Text>
             <View style={styles.shopStats}>
-              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>3.9k</Text> Sản phẩm</Text>
-              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{shop?.rating || 5.0}</Text> Đánh giá</Text>
+              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{shop?.totalProducts || 0}</Text> Sản phẩm</Text>
+              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{shop?.rating || 0}</Text> Đánh giá</Text>
+              <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{(shop as any)?.followerCount || 0}</Text> Theo dõi</Text>
             </View>
           </View>
           <TouchableOpacity 
@@ -703,6 +682,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           <Text style={styles.buyNowText}>MUA NGAY</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Shop Voucher Modal */}
+      <ShopVoucherModal 
+        visible={showShopVoucherModal} 
+        onClose={() => setShowShopVoucherModal(false)}
+        shopId={product?.shopId}
+      />
     </SafeAreaView>
   );
 };

@@ -11,6 +11,7 @@ interface SearchBarProps {
   onPress?: () => void;
   editable?: boolean;
   autoFocus?: boolean;
+  onAIPress?: () => void;
 }
 
 const SearchBar: React.FC<SearchBarProps> = ({ 
@@ -21,7 +22,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onSubmitEditing,
   onPress,
   editable = true,
-  autoFocus = false
+  autoFocus = false,
+  onAIPress
 }) => {
   const content = (
     <View style={styles.searchBar}>
@@ -40,6 +42,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
             editable={editable}
             autoFocus={autoFocus}
           />
+        )}
+        {onAIPress && (
+          <TouchableOpacity onPress={onAIPress} style={{ marginRight: 8 }}>
+            <Ionicons name="sparkles" size={20} color="#F73658" />
+          </TouchableOpacity>
         )}
         <TouchableOpacity onPress={onVoicePress}>
           <MaterialCommunityIcons name="microphone-outline" size={24} color="#BBBBBB" />

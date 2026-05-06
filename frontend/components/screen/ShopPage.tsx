@@ -8,6 +8,7 @@ import { getShopById, getShopProducts, toggleFollowShop, getFollowStatus, ShopDe
 import { ShopDTO } from '../../lib/mockData';
 import { ProductDTO, formatPriceFull, formatSold } from '../../lib/productApi';
 import { toggleFavorite } from '../../lib/wishlistApi';
+import { apiClient } from '../../lib/apiClient';
 
 const { width } = Dimensions.get('window');
 
@@ -21,6 +22,8 @@ const ShopPage: React.FC<ShopPageProps> = ({ shopId = 1 }) => {
   const [isFollowing, setIsFollowing] = useState(false);
   const [activeTab, setActiveTab] = useState('all');
   const [favoriteIds, setFavoriteIds] = useState<Set<number>>(new Set());
+  const [shopVouchers, setShopVouchers] = useState<any[]>([]);
+  const [savedVoucherIds, setSavedVoucherIds] = useState<Set<number>>(new Set());
 
   useEffect(() => { loadShopData(); }, [shopId]);
 
@@ -33,13 +36,29 @@ const ShopPage: React.FC<ShopPageProps> = ({ shopId = 1 }) => {
       setShop(shopData);
       setProducts(productData);
       setIsFollowing(followData.isFollowing);
+
+      // Fetch shop vouchers
+      try {
+        const vRes = await apiClient.get('/api/vouchers');
+        const vData = vRes.data?.data || vRes.data || [];
+        setShopVouchers(vData.slice(0, 5)); // Show up to 5 vouchers
+      } catch { /* no vouchers */ }
     } catch (err) { console.error('Failed to load shop data:', err); }
     finally { setLoading(false); }
   };
 
   const handleFollow = async () => {
     const success = await toggleFollowShop(shopId, isFollowing);
-    if (success) setIsFollowing(!isFollowing);
+    if (success) {
+      setIsFollowing(!isFollowing);
+      // Update follower count locally
+      setShop(prev => prev ? {
+        ...prev,
+        followerCount: isFollowing 
+          ? Math.max(0, (prev.followerCount ?? 0) - 1) 
+          : (prev.followerCount ?? 0) + 1
+      } : prev);
+    }
   };
 
   const handleShare = async () => {
@@ -221,12 +240,39 @@ const ShopPage: React.FC<ShopPageProps> = ({ shopId = 1 }) => {
         {/* Vouchers */}
         <View style={styles.vouchersSection}>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.vouchersScroll}>
-            {[20, 50, 100].map(val => (
-              <View key={val} style={styles.voucherCard}>
-                <View style={styles.voucherLeft}><Text style={styles.voucherLabel}>Giảm</Text><Text style={styles.voucherAmount}>{val}k</Text></View>
-                <TouchableOpacity style={styles.voucherRight}><Text style={styles.voucherAction}>Lưu</Text></TouchableOpacity>
-              </View>
-            ))}
+            {shopVouchers.length > 0 ? shopVouchers.map(v => {
+              const isSaved = savedVoucherIds.has(v.id);
+              const displayVal = v.discountType === 'Percentage' 
+                ? `${v.discountValue}%` 
+                : `${Math.round(v.discountValue / 1000)}k`;
+              return (
+                <View key={v.id} style={styles.voucherCard}>
+                  <View style={styles.voucherLeft}><Text style={styles.voucherLabel}>Giảm</Text><Text style={styles.voucherAmount}>{displayVal}</Text></View>
+                  <TouchableOpacity 
+                    style={[styles.voucherRight, isSaved && { backgroundColor: '#999' }]}
+                    disabled={isSaved}
+                    onPress={async () => {
+                      try {
+                        await apiClient.post(`/api/vouchers/${v.id}/claim`);
+                        setSavedVoucherIds(prev => new Set(prev).add(v.id));
+                      } catch (e: any) {
+                        const msg = e?.response?.data?.message || 'Không thể lưu voucher';
+                        Alert.alert('Thông báo', msg);
+                      }
+                    }}
+                  >
+                    <Text style={styles.voucherAction}>{isSaved ? 'Đã lưu' : 'Lưu'}</Text>
+                  </TouchableOpacity>
+                </View>
+              );
+            }) : (
+              [20, 50, 100].map(val => (
+                <View key={val} style={styles.voucherCard}>
+                  <View style={styles.voucherLeft}><Text style={styles.voucherLabel}>Giảm</Text><Text style={styles.voucherAmount}>{val}k</Text></View>
+                  <TouchableOpacity style={styles.voucherRight}><Text style={styles.voucherAction}>Lưu</Text></TouchableOpacity>
+                </View>
+              ))
+            )}
           </ScrollView>
         </View>
 

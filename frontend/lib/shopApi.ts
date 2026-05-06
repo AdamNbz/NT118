@@ -120,7 +120,7 @@ export async function uploadImage(fileUri: string): Promise<string> {
 export async function getFollowedShops(): Promise<ShopDTO[]> {
   try {
     const res = await apiClient.get('/api/shops/followed');
-    return res.data;
+    return res.data?.data || res.data || [];
   } catch (err) {
     console.error('Failed to fetch followed shops:', err);
     return [];
@@ -133,7 +133,7 @@ export async function getFollowedShops(): Promise<ShopDTO[]> {
 export async function getFollowStatus(shopId: number): Promise<{ isFollowing: boolean; followedAt?: string }> {
   try {
     const res = await apiClient.get(`/api/shops/${shopId}/follow-status`);
-    return res.data;
+    return res.data?.data || res.data || { isFollowing: false };
   } catch (err) {
     console.error('Failed to fetch follow status:', err);
     return { isFollowing: false };

@@ -1,5 +1,7 @@
 import { apiClient } from './apiClient';
 
+// Toggle to use mock data for testing
+const USE_MOCK = false;
 
 export interface ViewHistoryItemDTO {
   productId: number;
@@ -89,6 +91,30 @@ export function formatSold(sold: number): string {
  * Fetch paginated product list
  */
 export async function getProducts(params: ProductListParams = {}): Promise<PaginatedResponse<ProductDTO>> {
+  if (USE_MOCK) {
+    let filtered = [...MOCK_PRODUCTS];
+    if (params.q) {
+      filtered = filtered.filter(p => p.name.toLowerCase().includes(params.q!.toLowerCase()));
+    }
+    if (params.categoryId) {
+      filtered = filtered.filter(p => p.categoryId === params.categoryId);
+    }
+
+    // Simple mock pagination
+    const page = params.page || 1;
+    const pageSize = params.pageSize || 20;
+    const items = filtered.slice((page - 1) * pageSize, page * pageSize);
+
+    return {
+      data: items,
+      pagination: {
+        page,
+        pageSize,
+        total: filtered.length,
+        totalPages: Math.ceil(filtered.length / pageSize)
+      }
+    };
+  }
 
 
   const { category, sort, ...rest } = params;

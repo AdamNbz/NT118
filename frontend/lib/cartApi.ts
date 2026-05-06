@@ -1,5 +1,7 @@
 import { apiClient } from './apiClient';
 
+// Toggle to use mock data for testing
+const USE_MOCK = false;
 
 
 export interface AddToCartRequest {

@@ -82,3 +82,22 @@ export async function sendChatMessage(payload: ChatApiRequest): Promise<ChatApiR
   const { data } = await chatbotClient.post<ChatApiResponse>('/api/chat', body, { signal });
   return data;
 }
+
+export type AIParsedSearch = {
+  extracted_query: string;
+  category: string | null;
+  color: string | null;
+  max_price: number | null;
+  min_price: number | null;
+};
+
+export async function aiParseSearch(query: string): Promise<AIParsedSearch> {
+  try {
+    const { data } = await chatbotClient.post<AIParsedSearch>('/api/search/ai-parse', { query });
+    return data;
+  } catch (error) {
+    console.log('aiParseSearch error:', error);
+    // fallback
+    return { extracted_query: query, category: null, color: null, max_price: null, min_price: null };
+  }
+}

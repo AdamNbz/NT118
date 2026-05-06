@@ -60,14 +60,32 @@ export default function SearchDetail({ visible, onClose }: SearchDetailProps) {
     }
   };
 
-  const executeSearch = async (query: string) => {
+  const executeSearch = async (query: string, useAI: boolean = false) => {
     if (!query.trim()) {
       setProducts([]);
       return;
     }
     try {
       setLoading(true);
-      const res = await getProducts({ q: query, page: 1, pageSize: 20 });
+      let searchParams: any = { q: query, page: 1, pageSize: 20 };
+      
+      const wordCount = query.trim().split(/\s+/).length;
+      if (useAI || wordCount > 3) {
+        const { aiParseSearch } = await import('../../lib/chatApi');
+        const parsed = await aiParseSearch(query);
+        if (parsed.extracted_query) searchParams.q = parsed.extracted_query;
+        if (parsed.color) {
+          searchParams.q = `${searchParams.q || ''} ${parsed.color}`.trim();
+        }
+        if (parsed.category) {
+          const { getCategories } = await import('../../lib/categoryApi');
+          const cats = await getCategories();
+          const matched = cats.find(c => c.name.toLowerCase().includes(parsed.category!.toLowerCase()));
+          if (matched) searchParams.categoryId = matched.id;
+        }
+      }
+
+      const res = await getProducts(searchParams);
       setProducts(res.data.map(toCardProduct));
     } catch (err) {
       console.log('Search failed:', err);
@@ -95,6 +113,12 @@ export default function SearchDetail({ visible, onClose }: SearchDetailProps) {
     }
   };
 
+  const handleAIPress = () => {
+    if (searchQuery.trim().length > 0) {
+      executeSearch(searchQuery.trim(), true);
+    }
+  };
+
   const handleProductPress = (product: Product) => {
     onClose();
     router.push(`/product/${product.id}` as any);
@@ -109,6 +133,7 @@ export default function SearchDetail({ visible, onClose }: SearchDetailProps) {
           onSubmitEditing={handleSearchSubmit}
           onBackPress={onClose}
           autoFocus={visible}
+          onAIPress={handleAIPress}
         />
         
         {loading && searchQuery.trim() ? (

@@ -157,6 +157,7 @@ public class ShopsController(AppDbContext db) : ControllerBase
             shop.Phone,
             shop.Email,
             shop.BusinessHours,
+            shop.PickupAddress,
             Type = shop.Type.ToString(),
             Status = shop.Status.ToString(),
             shop.IsVerified,
@@ -187,6 +188,7 @@ public class ShopsController(AppDbContext db) : ControllerBase
         if (!string.IsNullOrWhiteSpace(body.Phone)) shop.Phone = body.Phone;
         if (!string.IsNullOrWhiteSpace(body.Email)) shop.Email = body.Email;
         if (!string.IsNullOrWhiteSpace(body.BusinessHours)) shop.BusinessHours = body.BusinessHours;
+        if (!string.IsNullOrWhiteSpace(body.PickupAddress)) shop.PickupAddress = body.PickupAddress;
         shop.UpdatedAt = DateTime.UtcNow;
 
         await db.SaveChangesAsync(cancellationToken);

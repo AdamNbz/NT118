@@ -47,6 +47,8 @@ const ShopProfileScreen: React.FC = () => {
         address: profile.address,
         phone: profile.phone,
         email: profile.email,
+        businessHours: profile.businessHours,
+        pickupAddress: profile.pickupAddress,
       });
       Alert.alert('Thành công', 'Đã cập nhật thông tin cửa hàng');
     } catch (error: any) {
@@ -58,7 +60,7 @@ const ShopProfileScreen: React.FC = () => {
 
   const completion = useMemo(() => {
     if (!profile) return 0;
-    const fields = ['name', 'description', 'address', 'phone'];
+    const fields = ['name', 'description', 'address', 'phone', 'businessHours'];
     const filled = fields.filter(f => (profile as any)[f]?.trim()).length;
     return Math.round((filled / fields.length) * 100);
   }, [profile]);
@@ -166,6 +168,18 @@ const ShopProfileScreen: React.FC = () => {
               onChangeText={(text) => setProfile((prev) => ({ ...prev, businessHours: text }))}
               style={styles.addressInput}
               placeholder="Ví dụ: 08:00 - 22:00"
+              placeholderTextColor="#9ca3af"
+            />
+          </View>
+
+          <Text style={styles.fieldLabel}>ĐỊA CHỈ LẤY HÀNG</Text>
+          <View style={styles.addressRow}>
+            <Ionicons name="cube-outline" size={16} color="#ef476f" />
+            <TextInput
+              value={profile.pickupAddress}
+              onChangeText={(text) => setProfile((prev) => ({ ...prev, pickupAddress: text }))}
+              style={styles.addressInput}
+              placeholder="Địa chỉ kho hàng / nơi lấy hàng"
               placeholderTextColor="#9ca3af"
             />
           </View>

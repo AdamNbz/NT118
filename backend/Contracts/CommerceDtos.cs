@@ -301,6 +301,9 @@ public class UpdateShopRequest
 
     [MaxLength(200)]
     public string? BusinessHours { get; set; }
+
+    [MaxLength(500)]
+    public string? PickupAddress { get; set; }
 }
 
 public class UpdateSellerOrderStatusRequest
@@ -355,3 +358,18 @@ public class CreateBusinessShopRequest
     [MaxLength(200)]
     public string? BusinessHours { get; set; }
 }
+
+public record SellerTodoStats(
+    int OrdersToShip,
+    int CancelledOrders,
+    int ReturnRequests,
+    int OutOfStockProducts);
+
+public record SellerDashboardStats(
+    string ShopName,
+    decimal TodayRevenue,
+    int TodayOrders,
+    decimal ConversionRate,
+    decimal AverageOrderValue,
+    IReadOnlyList<decimal> RevenueHistory,
+    SellerTodoStats Todo);

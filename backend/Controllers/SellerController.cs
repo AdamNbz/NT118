@@ -13,6 +13,63 @@ namespace Backend.Controllers;
 [Route("api/seller")]
 public class SellerController(AppDbContext db, INotificationRealtimeService notificationService) : ControllerBase
 {
+    [HttpGet("dashboard")]
+    public async Task<ActionResult<SellerDashboardStats>> GetDashboardStats(CancellationToken cancellationToken)
+    {
+        if (!this.TryGetCurrentUserId(out var userId))
+            return Unauthorized();
+
+        var shop = await db.Shops.FirstOrDefaultAsync(x => x.OwnerId == userId, cancellationToken);
+        if (shop is null)
+            return NotFound(new { message = "Không tìm thấy thông tin cửa hàng." });
+
+        var now = DateTime.UtcNow;
+        var today = new DateTime(now.Year, now.Month, now.Day, 0, 0, 0, DateTimeKind.Utc);
+        var sevenDaysAgo = today.AddDays(-6); // Include today + 6 previous days
+
+        // 1. Basic Stats
+        var todayOrdersQuery = db.Orders.Where(o => o.ShopId == shop.Id && o.OrderedAt >= today);
+        var todayOrdersCount = await todayOrdersQuery.CountAsync(cancellationToken);
+        var todayRevenue = await todayOrdersQuery
+            .Where(o => o.PaymentStatus == PaymentStatus.paid)
+            .SumAsync(o => (decimal?)o.TotalAmount, cancellationToken) ?? 0;
+
+        // 2. Todo Stats
+        var ordersToShip = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.confirmed, cancellationToken);
+        var cancelledOrders = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.cancelled && o.OrderedAt >= sevenDaysAgo, cancellationToken);
+        var returnRequests = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.refunded && o.OrderedAt >= sevenDaysAgo, cancellationToken);
+        var outOfStockProducts = await db.Products.CountAsync(p => p.ShopId == shop.Id && p.StockQuantity <= 0, cancellationToken);
+
+        // 3. Revenue History (Last 7 days)
+        var revenueHistory = new List<decimal>();
+        for (int i = 6; i >= 0; i--)
+        {
+            var dayStart = today.AddDays(-i);
+            var dayEnd = dayStart.AddDays(1);
+            var dayRevenue = await db.Orders
+                .Where(o => o.ShopId == shop.Id && o.PaymentStatus == PaymentStatus.paid && o.OrderedAt >= dayStart && o.OrderedAt < dayEnd)
+                .SumAsync(o => (decimal?)o.TotalAmount, cancellationToken) ?? 0;
+            revenueHistory.Add(dayRevenue);
+        }
+
+        var response = new SellerDashboardStats(
+            ShopName: shop.Name,
+            TodayRevenue: todayRevenue,
+            TodayOrders: todayOrdersCount,
+            ConversionRate: 3.8m, // Mock for now
+            AverageOrderValue: todayOrdersCount > 0 ? todayRevenue / todayOrdersCount : 0,
+            RevenueHistory: revenueHistory,
+            Todo: new SellerTodoStats(
+                OrdersToShip: ordersToShip,
+                CancelledOrders: cancelledOrders,
+                ReturnRequests: returnRequests,
+                OutOfStockProducts: outOfStockProducts
+            )
+        );
+
+        return Ok(response);
+    }
+
     [HttpPost("register")]
     public async Task<IActionResult> RegisterAsSeller(CancellationToken cancellationToken)
     {

@@ -132,6 +132,7 @@ export interface ShopProfile {
   status: string;
   isVerified: boolean;
   businessHours?: string;
+  pickupAddress?: string;
   createdAt: string;
 }
 
@@ -143,6 +144,8 @@ export interface UpdateShopProfilePayload {
   address?: string;
   phone?: string;
   email?: string;
+  businessHours?: string;
+  pickupAddress?: string;
 }
 
 export const sellerApi = {
@@ -195,76 +198,7 @@ export const sellerApi = {
   },
 
   getDashboardStats: async (): Promise<SellerDashboardStats> => {
-    const buildStats = (input: {
-      shopName: string;
-      todayRevenue: number;
-      todayOrders: number;
-      conversionRate: number;
-      revenueHistory: number[];
-      todo: SellerTodoStats;
-    }): SellerDashboardStats => ({
-      ...input,
-      averageOrderValue: input.todayOrders > 0 ? input.todayRevenue / input.todayOrders : 0,
-    });
-
-    const [products, orders] = await Promise.all([
-      sellerApi.getProducts(),
-      sellerApi.getOrders(),
-    ]);
-
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    const todayOrders = orders.filter(o => new Date(o.orderedAt) >= today);
-    const todayRevenue = todayOrders
-      .filter(o => o.paymentStatus === 'paid')
-      .reduce((sum, o) => sum + o.totalAmount, 0);
-
-    const ordersToShip = orders.filter(o => o.status === 'confirmed').length;
-    
-    // For cancelled and return requests, we look at the last 7 days since "today" might be too narrow
-    const sevenDaysAgo = new Date(today);
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-    
-    const cancelledOrders = orders.filter(o => 
-      o.status === 'cancelled' && new Date(o.orderedAt) >= sevenDaysAgo
-    ).length;
-
-    const returnRequests = orders.filter(o => 
-      o.status === 'refunded' && new Date(o.orderedAt) >= sevenDaysAgo
-    ).length;
-
-    const outOfStockProducts = products.filter(p => p.stockQuantity <= 0).length;
-
-    // Generate revenue history for the last 7 days
-    const revenueHistory: number[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(today);
-      d.setDate(d.getDate() - i);
-      const dayEnd = new Date(d);
-      dayEnd.setHours(23, 59, 59, 999);
-      
-      const dayRevenue = orders
-        .filter(o => {
-          const date = new Date(o.orderedAt);
-          return date >= d && date <= dayEnd && o.paymentStatus === 'paid';
-        })
-        .reduce((sum, o) => sum + o.totalAmount, 0);
-      revenueHistory.push(dayRevenue);
-    }
-
-    return buildStats({
-      shopName: "Cửa hàng của tôi", 
-      todayRevenue,
-      todayOrders: todayOrders.length,
-      conversionRate: 3.8, 
-      revenueHistory,
-      todo: {
-        ordersToShip,
-        cancelledOrders,
-        returnRequests,
-        outOfStockProducts,
-      }
-    });
+    const response = await apiClient.get<SellerDashboardStats>('/api/seller/dashboard');
+    return response.data;
   },
 };

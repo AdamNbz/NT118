@@ -13,6 +13,7 @@ public class Shop
     public string? Phone { get; set; }
     public string? Email { get; set; }
     public string? BusinessHours { get; set; }
+    public string? PickupAddress { get; set; }
     public ShopType Type { get; set; } = ShopType.individual;
     public decimal Rating { get; set; }
     public int TotalReviews { get; set; }

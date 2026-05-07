@@ -7,6 +7,7 @@ RUN dotnet restore "backend/backend.csproj"
 
 # Copy everything else and build
 COPY backend/ backend/
+COPY database/data.json backend/
 WORKDIR "/src/backend"
 RUN dotnet build "backend.csproj" -c Release -o /app/build
 

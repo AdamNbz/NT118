@@ -13,6 +13,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ../database/init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 10s
@@ -38,6 +39,30 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+
+  ai:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.ai
+    container_name: nt118-ai
+    restart: unless-stopped
+    ports:
+      - "8000:8000"
+    environment:
+      - MODEL_TYPE=groq
+      - GROQ_API_KEY=your_key_here
+    depends_on:
+      - backend
+
+  db-seed:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.seed
+    container_name: nt118-db-seed
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: "no"
 
 volumes:
   postgres_data:

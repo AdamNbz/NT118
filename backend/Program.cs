@@ -229,6 +229,9 @@ using (var scope = app.Services.CreateScope())
             ADD COLUMN IF NOT EXISTS longitude DOUBLE PRECISION,
             ADD COLUMN IF NOT EXISTS poi_name VARCHAR(200),
             ADD COLUMN IF NOT EXISTS formatted_address VARCHAR(500);
+
+        ALTER TABLE shops
+            ADD COLUMN IF NOT EXISTS pickup_address VARCHAR(500);
     ");
 
     // Apply pending migrations only if the database is already managed by EF migrations.

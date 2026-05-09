@@ -22,9 +22,12 @@ export const normalizeQueryFilter = (value: unknown): OrderTab => {
   }
 
   const filter = value.toLowerCase();
-  if (filter === 'to-ship') return 'to-ship';
+  if (filter === 'unpaid' || filter === 'pending') return 'unpaid';
+  if (filter === 'to-ship' || filter === 'confirmed') return 'to-ship';
+  if (filter === 'shipping') return 'shipping';
+  if (filter === 'completed' || filter === 'delivered') return 'completed';
   if (filter === 'cancelled') return 'cancelled';
-  if (filter === 'returns') return 'returns';
+  if (filter === 'returns' || filter === 'refunded') return 'returns';
   return 'all';
 };
 

@@ -76,7 +76,7 @@ public class NotificationHub : Hub
             message.OrderId
         );
         
-        await Clients.Group(BuildUserGroup(req.ReceiverId.ToString())).SendAsync("ReceiveMessage", dto);
-        await Clients.Caller.SendAsync("ReceiveMessage", dto);
+        await Clients.Group(BuildUserGroup(req.ReceiverId.ToString())).SendAsync("message.received", dto);
+        await Clients.Caller.SendAsync("message.received", dto);
     }
 }

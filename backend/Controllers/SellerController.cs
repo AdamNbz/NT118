@@ -51,10 +51,11 @@ public class SellerController(AppDbContext db, INotificationRealtimeService noti
             var todayOrdersQuery = db.Orders.Where(o => o.ShopId == shop.Id && o.OrderedAt >= today);
             var todayOrdersCount = await todayOrdersQuery.CountAsync(cancellationToken);
             var todayRevenue = await todayOrdersQuery
-                .Where(o => o.PaymentStatus == PaymentStatus.paid)
+                .Where(o => o.Status != OrderStatus.cancelled)
                 .SumAsync(o => (decimal?)o.TotalAmount, cancellationToken) ?? 0;
 
             // 2. Todo Stats
+            var ordersToConfirm = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.pending, cancellationToken);
             var ordersToShip = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.confirmed, cancellationToken);
             var cancelledOrders = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.cancelled && o.OrderedAt >= sevenDaysAgo, cancellationToken);
             var returnRequests = await db.Orders.CountAsync(o => o.ShopId == shop.Id && o.Status == OrderStatus.refunded && o.OrderedAt >= sevenDaysAgo, cancellationToken);
@@ -68,20 +69,32 @@ public class SellerController(AppDbContext db, INotificationRealtimeService noti
                 var dayEnd = dayStart.AddDays(1);
                 var dayRevenue = await db.Orders
                     .AsNoTracking()
-                    .Where(o => o.ShopId == shop.Id && o.PaymentStatus == PaymentStatus.paid && o.OrderedAt >= dayStart && o.OrderedAt < dayEnd)
+                    .Where(o => o.ShopId == shop.Id && o.Status != OrderStatus.cancelled && o.OrderedAt >= dayStart && o.OrderedAt < dayEnd)
                     .Select(o => (decimal?)o.TotalAmount)
                     .SumAsync(cancellationToken) ?? 0;
                 revenueHistory.Add(dayRevenue);
             }
 
+            // Calculate mock but slightly more realistic conversion rate
+            // In a real app, we'd track visits/sessions. For now, we use a ratio of orders to total products or similar.
+            decimal conversionRate = 0;
+            var totalShopProducts = await db.Products.CountAsync(p => p.ShopId == shop.Id, cancellationToken);
+            if (totalShopProducts > 0)
+            {
+                var totalOrders = await db.Orders.CountAsync(o => o.ShopId == shop.Id, cancellationToken);
+                conversionRate = Math.Min(10.0m, (decimal)totalOrders / totalShopProducts * 5.0m);
+            }
+            if (conversionRate == 0) conversionRate = 2.5m;
+
             var response = new SellerDashboardStats(
                 ShopName: shop.Name,
                 TodayRevenue: todayRevenue,
                 TodayOrders: todayOrdersCount,
-                ConversionRate: 3.8m, // Mock for now
+                ConversionRate: conversionRate,
                 AverageOrderValue: todayOrdersCount > 0 ? todayRevenue / todayOrdersCount : 0,
                 RevenueHistory: revenueHistory,
                 Todo: new SellerTodoStats(
+                    OrdersToConfirm: ordersToConfirm,
                     OrdersToShip: ordersToShip,
                     CancelledOrders: cancelledOrders,
                     ReturnRequests: returnRequests,

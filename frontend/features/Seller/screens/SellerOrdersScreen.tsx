@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { RefreshControl, SafeAreaView, ScrollView, StatusBar, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter, useFocusEffect } from 'expo-router';
 import BottomTabBar from '../components/BottomTabBar';
 import { SellerOrder, sellerApi } from '../../../lib/sellerApi';
 import SellerOrdersHeader from '../components/orders/SellerOrdersHeader';
@@ -44,9 +44,11 @@ const SellerOrdersScreen: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    fetchOrders();
-  }, [fetchOrders]);
+  useFocusEffect(
+    useCallback(() => {
+      fetchOrders();
+    }, [fetchOrders])
+  );
 
   const filteredOrders = useMemo(
     () => orders.filter((order) => isOrderMatchedByTab(order, activeTab)),

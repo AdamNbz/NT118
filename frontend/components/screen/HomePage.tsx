@@ -27,6 +27,7 @@ import WishlistBanner from '../common/WishlistBanner';
 import NewArrivalsCard from '../common/NewArrivalsCard';
 import Skeleton from '../common/Skeleton';
 import { getProducts, getFeaturedProducts, ProductDTO, formatPrice, formatSold } from '../../lib/productApi';
+import { getCategories, CategoryDTO } from '../../lib/categoryApi';
 import { userApi, UserProfileDTO } from '../../lib/userApi';
 
 const categories: Category[] = [
@@ -92,21 +93,39 @@ const HomePage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const { width } = Dimensions.get('window');
+  const [apiCategories, setApiCategories] = useState<CategoryDTO[]>([]);
+
+  // Countdown timer
+  const [countdown, setCountdown] = useState(10520); // ~2h55m20s in seconds
+  useEffect(() => {
+    const timer = setInterval(() => {
+      setCountdown(prev => (prev <= 0 ? 10520 : prev - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, []);
+  const formatCountdown = (s: number) => {
+    const h = Math.floor(s / 3600).toString().padStart(2, '0');
+    const m = Math.floor((s % 3600) / 60).toString().padStart(2, '0');
+    const sec = (s % 60).toString().padStart(2, '0');
+    return `Kết thúc sau ${h}:${m}:${sec}`;
+  };
 
   const loadData = useCallback(async () => {
     try {
-      const [profile, featured, newest, suggested, favs] = await Promise.all([
+      const [profile, featured, newest, suggested, favs, cats] = await Promise.all([
         userApi.getProfile().catch(() => null),
         getFeaturedProducts(6),
         getProducts({ page: 1, pageSize: 6, sort: 'newest' }),
         getProducts({ page: 1, pageSize: 6, sort: 'popular' }),
-        import('../../lib/wishlistApi').then(m => m.getFavorites().catch(() => ({ data: [] } as any)))
+        import('../../lib/wishlistApi').then(m => m.getFavorites().catch(() => ({ data: [] } as any))),
+        getCategories()
       ]);
 
       if (profile) setUser(profile);
       setFeaturedProducts(featured.map(toCardProduct));
       setNewestProducts(newest.data.map(toCardProduct));
       setSuggestedProducts(suggested.data.map(toCardProduct));
+      setApiCategories(cats);
       setPage(1);
       setHasMore(suggested.pagination.page < suggested.pagination.totalPages);
 
@@ -186,21 +205,23 @@ const HomePage = () => {
   };
 
   const handleFilter = () => {
-    const options = [
-      { text: 'Tất cả danh mục', id: null },
-      { text: 'Thời Trang Nam', id: 4 },
-      { text: 'Thời Trang Nữ', id: 5 },
-      { text: 'Đồ Trẻ Em', id: 3 },
-      { text: 'Quà Tặng', id: 6 },
-      { text: 'Hủy', id: 'cancel', style: 'cancel' as const },
-    ];
+    const catOptions = apiCategories.length > 0
+      ? [
+          { text: 'Tất cả danh mục', id: null },
+          ...apiCategories.slice(0, 6).map(c => ({ text: c.name, id: c.id })),
+          { text: 'Hủy', id: 'cancel', style: 'cancel' as const },
+        ]
+      : [
+          { text: 'Tất cả danh mục', id: null },
+          { text: 'Hủy', id: 'cancel', style: 'cancel' as const },
+        ];
 
     require('react-native').Alert.alert(
       'Lọc theo danh mục',
       'Chọn danh mục bạn muốn tìm kiếm',
-      options.map(opt => ({
+      catOptions.map(opt => ({
         text: opt.text,
-        style: opt.style as any,
+        style: (opt as any).style,
         onPress: () => {
           if (opt.id !== 'cancel') {
             const url = opt.id ? `/search?categoryId=${opt.id}` : '/search';
@@ -276,9 +297,9 @@ const HomePage = () => {
 
         <SectionHeader
           title="Deal Chớp Nhoáng"
-          timerText="Kết thúc sau 02:55:20"
+          timerText={formatCountdown(countdown)}
           isBlueVariant={false}
-          onViewAllPress={() => { }}
+          onViewAllPress={() => router.push('/search?sort=popular' as any)}
         />
 
         {loading && !refreshing ? (
@@ -325,7 +346,7 @@ const HomePage = () => {
 
         <SectionHeader
           title="Sản phẩm mới nhất"
-          onViewAllPress={() => { }}
+          onViewAllPress={() => router.push('/search?sort=newest' as any)}
         />
 
         {loading && !refreshing ? (
@@ -358,7 +379,7 @@ const HomePage = () => {
         <NewArrivalsCard
           title="Hàng Mới Về"
           subtitle="Bộ sưu tập Hè 2026"
-          onViewAll={() => { }}
+          onViewAll={() => router.push('/search?sort=newest' as any)}
           image={require('../../assets/images/slash/shop.png')}
         />
 

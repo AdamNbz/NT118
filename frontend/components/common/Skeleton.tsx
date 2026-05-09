@@ -1,55 +1,77 @@
 import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, ViewStyle } from 'react-native';
+import { View, Animated, StyleSheet, ViewStyle, Dimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 
 interface SkeletonProps {
   width: number | string;
   height: number | string;
   borderRadius?: number;
+  circle?: boolean;
   style?: ViewStyle;
 }
 
-const Skeleton: React.FC<SkeletonProps> = ({ width, height, borderRadius = 8, style }) => {
-  const shimmerValue = useRef(new Animated.Value(0)).current;
+const { width: SCREEN_WIDTH } = Dimensions.get('window');
+
+const Skeleton: React.FC<SkeletonProps> = ({ 
+  width, 
+  height, 
+  borderRadius = 8, 
+  circle = false,
+  style 
+}) => {
+  const translateX = useRef(new Animated.Value(-1)).current;
 
   useEffect(() => {
     const shimmerAnimation = Animated.loop(
-      Animated.sequence([
-        Animated.timing(shimmerValue, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(shimmerValue, {
-          toValue: 0,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
+      Animated.timing(translateX, {
+        toValue: 1,
+        duration: 1500,
+        useNativeDriver: true,
+      })
     );
     shimmerAnimation.start();
     return () => shimmerAnimation.stop();
-  }, [shimmerValue]);
+  }, [translateX]);
 
-  const opacity = shimmerValue.interpolate({
-    inputRange: [0, 1],
-    outputRange: [0.3, 0.7],
+  const animatedTranslate = translateX.interpolate({
+    inputRange: [-1, 1],
+    outputRange: [-SCREEN_WIDTH, SCREEN_WIDTH],
   });
 
+  const finalBorderRadius = circle ? (typeof height === 'number' ? height / 2 : 999) : borderRadius;
+
   return (
-    <Animated.View
+    <View
       style={[
         styles.skeleton,
-        { width: width as any, height: height as any, borderRadius, opacity },
+        { 
+          width: width as any, 
+          height: height as any, 
+          borderRadius: finalBorderRadius 
+        },
         style,
       ]}
-    />
+    >
+      <Animated.View
+        style={[
+          StyleSheet.absoluteFill,
+          { transform: [{ translateX: animatedTranslate }] },
+        ]}
+      >
+        <LinearGradient
+          colors={['transparent', 'rgba(255, 255, 255, 0.4)', 'transparent']}
+          start={{ x: 0, y: 0.5 }}
+          end={{ x: 1, y: 0.5 }}
+          style={StyleSheet.absoluteFill}
+        />
+      </Animated.View>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
   skeleton: {
-    backgroundColor: '#E1E9EE',
+    backgroundColor: '#E8E8E8',
     overflow: 'hidden',
   },
 });

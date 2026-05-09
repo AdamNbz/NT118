@@ -49,9 +49,6 @@ const CustomSearchHeader: React.FC<CustomSearchHeaderProps> = ({
           onSubmitEditing={onSubmitEditing}
           autoFocus={autoFocus}
         />
-        <TouchableOpacity style={styles.cameraIcon}>
-          <Ionicons name="camera-outline" size={20} color="#888" />
-        </TouchableOpacity>
         <TouchableOpacity style={styles.cameraIcon} onPress={onAIPress}>
           <Ionicons name="sparkles" size={20} color="#F73658" />
         </TouchableOpacity>

@@ -8,6 +8,7 @@ import { getMyOrders, OrderDTO, OrderStatus } from '../../lib/orderApi';
 const TABS: { label: string; status: OrderStatus | 'all' }[] = [
   { label: 'Tất cả', status: 'all' },
   { label: 'Chờ xác nhận', status: 'pending' },
+  { label: 'Chờ lấy hàng', status: 'confirmed' },
   { label: 'Chờ giao hàng', status: 'shipping' },
   { label: 'Hoàn thành', status: 'delivered' },
   { label: 'Đã hủy', status: 'cancelled' },

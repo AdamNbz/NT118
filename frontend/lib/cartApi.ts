@@ -1,4 +1,5 @@
 import { apiClient } from './apiClient';
+import { notifyCartUpdate } from '../hooks/useCartCount';
 
 // Toggle to use mock data for testing
 const USE_MOCK = false;
@@ -40,6 +41,7 @@ export async function addToCart(productId: number, quantity: number = 1, variant
       quantity,
       variantId
     });
+    notifyCartUpdate();
     return {
       success: true,
       message: res.data?.message || 'Đã thêm vào giỏ hàng.'
@@ -82,6 +84,7 @@ export async function updateCartItemQuantity(id: number, quantity: number): Prom
 
   try {
     const res = await apiClient.put(`/api/cart/${id}`, { quantity });
+    notifyCartUpdate();
     return { success: true, message: res.data?.message || 'Đã cập nhật.' };
   } catch (err: any) {
     return { success: false, message: err.message || 'Cập nhật thất bại.' };
@@ -95,6 +98,7 @@ export async function deleteCartItem(id: number): Promise<{ success: boolean }> 
 
   try {
     await apiClient.delete(`/api/cart/${id}`);
+    notifyCartUpdate();
     return { success: true };
   } catch (err) {
     console.error('Failed to delete cart item:', err);

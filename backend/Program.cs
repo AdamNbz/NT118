@@ -107,7 +107,12 @@ builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddScoped<ApiExceptionFilter>();
 builder.Services.AddScoped<ApiResponseWrapperFilter>();
-builder.Services.AddSignalR();
+builder.Services.AddSignalR()
+    .AddJsonProtocol(options =>
+    {
+        options.PayloadSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+        options.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
+    });
 
 
 
@@ -126,6 +131,11 @@ builder.Services.AddControllers(options =>
 {
     options.Filters.AddService<ApiExceptionFilter>();
     options.Filters.AddService<ApiResponseWrapperFilter>();
+})
+.AddJsonOptions(options =>
+{
+    options.JsonSerializerOptions.PropertyNamingPolicy = JsonNamingPolicy.CamelCase;
+    options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter());
 });
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {

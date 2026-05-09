@@ -1,7 +1,4 @@
 import { apiClient } from './apiClient';
-import { ProductReviewItemResponse } from './mockData';
-
-
 
 export interface CreateReviewPayload {
   orderId: number;

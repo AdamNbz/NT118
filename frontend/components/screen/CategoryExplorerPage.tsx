@@ -9,7 +9,8 @@ import {
   ActivityIndicator,
   Dimensions,
   StatusBar,
-  Platform
+  Platform,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -24,6 +25,7 @@ const CategoryExplorerPage = () => {
   const router = useRouter();
   const [categories, setCategories] = useState<CategoryDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadCategories();
@@ -38,6 +40,7 @@ const CategoryExplorerPage = () => {
       console.error('Failed to load categories:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -91,6 +94,9 @@ const CategoryExplorerPage = () => {
         numColumns={COLUMN_COUNT}
         contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadCategories(); }} colors={['#F83758']} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="folder-open-outline" size={64} color="#CCC" />

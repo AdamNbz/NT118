@@ -191,7 +191,7 @@ export default function AdminSettings() {
               icon="help-circle-outline"
               title="Trung tâm hỗ trợ Admin"
               color="#64748b"
-              onPress={() => {}}
+              onPress={() => router.push('/support-center' as any)}
             />
             <View style={styles.divider} />
             <SettingItem

@@ -4,8 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import ProductCard from '../common/ProductCard';
-import { getShopById, getShopProducts, toggleFollowShop, getFollowStatus, ShopDetailResponse } from '../../lib/shopApi';
-import { ShopDTO } from '../../lib/mockData';
+import { getShopById, getShopProducts, toggleFollowShop, getFollowStatus, ShopDetailResponse, ShopDTO } from '../../lib/shopApi';
 import { ProductDTO, formatPriceFull, formatSold } from '../../lib/productApi';
 import { toggleFavorite } from '../../lib/wishlistApi';
 import { apiClient } from '../../lib/apiClient';
@@ -217,7 +216,7 @@ const ShopPage: React.FC<ShopPageProps> = ({ shopId = 1 }) => {
                 <Text style={styles.shopName}>{shop.name}</Text>
                 {shop.isVerified && <MaterialCommunityIcons name="check-decagram" size={16} color="#4CC9F0" />}
               </View>
-              <Text style={styles.onlineStatus}>Online 5 phút trước</Text>
+              <Text style={styles.onlineStatus}>Online</Text>
             </View>
             <TouchableOpacity style={[styles.followButton, isFollowing && styles.followingButton]} onPress={handleFollow}>
               <Text style={[styles.followButtonText, isFollowing && styles.followingButtonText]}>

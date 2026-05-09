@@ -11,12 +11,17 @@ interface SellerOrderCardProps {
 
 const SellerOrderCard: React.FC<SellerOrderCardProps> = ({ order }) => {
   const router = useRouter();
-  const primaryActionText = order.status === 'pending' ? 'XÁC NHẬN ĐƠN' : 'XỬ LÝ ĐƠN';
+  const showPrimaryAction = !['delivered', 'cancelled', 'refunded'].includes(order.status);
+  const primaryActionText = order.status === 'pending' ? 'XÁC NHẬN ĐƠN' : (order.status === 'confirmed' ? 'GIAO HÀNG' : 'XỬ LÝ ĐƠN');
 
   return (
     <View style={styles.orderCard}>
       <View style={styles.orderTop}>
-        <Text style={styles.statusTag}>{resolveStatusLabel(order.status)}</Text>
+        <Text style={[
+          styles.statusTag, 
+          order.status === 'delivered' && { color: '#10b981' },
+          order.status === 'cancelled' && { color: '#ef4444' }
+        ]}>{resolveStatusLabel(order.status)}</Text>
         <Text style={styles.amount}>{formatCurrency(order.totalAmount)}</Text>
       </View>
       <Text style={styles.orderCode}>#{order.orderNumber}</Text>
@@ -26,12 +31,14 @@ const SellerOrderCard: React.FC<SellerOrderCardProps> = ({ order }) => {
         <Text style={styles.shipText}>Đặt lúc: {formatOrderTime(order.orderedAt)}</Text>
       </View>
       <View style={styles.actionsRow}>
-        <TouchableOpacity 
-          style={styles.primaryButton}
-          onPress={() => router.push(`/seller-order-detail?id=${order.id}` as any)}
-        >
-          <Text style={styles.primaryButtonText}>{primaryActionText}</Text>
-        </TouchableOpacity>
+        {showPrimaryAction && (
+          <TouchableOpacity 
+            style={styles.primaryButton}
+            onPress={() => router.push(`/seller-order-detail?id=${order.id}` as any)}
+          >
+            <Text style={styles.primaryButtonText}>{primaryActionText}</Text>
+          </TouchableOpacity>
+        )}
         <TouchableOpacity
           style={styles.secondaryButton}
           onPress={() => router.push(`/seller-order-detail?id=${order.id}` as any)}

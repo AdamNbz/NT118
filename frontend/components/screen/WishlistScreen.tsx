@@ -73,7 +73,7 @@ const WishlistScreen = () => {
         {error || 'Hãy thêm các sản phẩm bạn thích vào đây để dễ dàng xem lại nhé!'}
       </Text>
       {error && (
-        <TouchableOpacity style={styles.loginButton}>
+        <TouchableOpacity style={styles.loginButton} onPress={() => router.push('/login' as any)}>
           <Text style={styles.loginButtonText}>Đăng nhập</Text>
         </TouchableOpacity>
       )}

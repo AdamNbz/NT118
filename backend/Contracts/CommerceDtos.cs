@@ -384,6 +384,7 @@ public class CreateBusinessShopRequest
 }
 
 public record SellerTodoStats(
+    int OrdersToConfirm,
     int OrdersToShip,
     int CancelledOrders,
     int ReturnRequests,

@@ -30,16 +30,18 @@ function defaultBaseUrl(): string {
     url = 'http://10.0.2.2:5058'; 
   }
 
-  console.log(`[API] Base URL resolved to: ${url}`);
+  if (__DEV__) console.log(`[API] Base URL resolved to: ${url}`);
   return url;
 }
 
 export const API_BASE_URL = defaultBaseUrl();
 
-console.log('=== API Client Debug ===');
-console.log('API_BASE_URL:', API_BASE_URL);
-console.log('Platform:', Platform.OS);
-console.log('======================');
+if (__DEV__) {
+  console.log('=== API Client Debug ===');
+  console.log('API_BASE_URL:', API_BASE_URL);
+  console.log('Platform:', Platform.OS);
+  console.log('======================');
+}
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -55,8 +57,10 @@ apiClient.interceptors.request.use(async (config) => {
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
-  console.log('>>> API Request:', config.method?.toUpperCase(), config.url);
-  console.log('>>> Full URL:', `${config.baseURL}${config.url}`);
+  if (__DEV__) {
+    console.log('>>> API Request:', config.method?.toUpperCase(), config.url);
+    console.log('>>> Full URL:', `${config.baseURL}${config.url}`);
+  }
   return config;
 });
 
@@ -69,15 +73,17 @@ apiClient.interceptors.response.use(
     return res;
   },
   (err) => {
-    console.log('<<< API Error:', err.message);
-    console.log('<<< Error code:', err.code);
-    console.log('<<< Error config:', err.config?.baseURL, err.config?.url);
-    if (err.config?.data) {
-      console.log('<<< Request payload:', err.config.data);
+    if (__DEV__) {
+      console.log('<<< API Error:', err.message);
+      console.log('<<< Error code:', err.code);
+      console.log('<<< Error config:', err.config?.baseURL, err.config?.url);
+      if (err.config?.data) {
+        console.log('<<< Request payload:', err.config.data);
+      }
     }
 
     const data = err.response?.data as { message?: string; title?: string; errors?: any } | undefined;
-    if (data?.errors) {
+    if (__DEV__ && data?.errors) {
       console.log('<<< Validation Errors:', JSON.stringify(data.errors, null, 2));
     }
     let message = `Không kết nối được máy chủ (${API_BASE_URL}). Bật backend cổng 5058 hoặc đặt EXPO_PUBLIC_API_URL.`;

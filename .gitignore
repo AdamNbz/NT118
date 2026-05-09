@@ -11,6 +11,9 @@ Thumbs.db
 # Node / React Native / Expo
 ############################
 node_modules/
+.agents/
+skills-lock.json
+.cursor/
 .expo/
 .expo-shared/
 dist/

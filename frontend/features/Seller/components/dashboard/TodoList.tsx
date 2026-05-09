@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 import TodoItem from '../TodoItem';
 import { SellerTodoStats } from '../../../../lib/sellerApi';
 
-type TodoRouteTarget = 'to-ship' | 'cancelled' | 'returns' | 'out-of-stock';
+type TodoRouteTarget = 'unpaid' | 'to-ship' | 'cancelled' | 'returns' | 'out-of-stock';
 
 interface TodoListProps {
   todoStats: SellerTodoStats | undefined;
@@ -12,6 +12,16 @@ interface TodoListProps {
 
 const TodoList: React.FC<TodoListProps> = ({ todoStats, onItemPress }) => {
   const todoData = todoStats ? [
+    {
+      id: '0',
+      title: 'Đơn cần xác nhận',
+      description: 'Cần xác nhận ngay',
+      count: todoStats.ordersToConfirm,
+      routeTarget: 'unpaid' as const,
+      icon: 'clipboard-outline' as const,
+      iconBgColor: '#ef476f',
+      countColor: '#ef476f',
+    },
     {
       id: '1',
       title: 'Đơn cần giao',
@@ -65,8 +75,8 @@ const TodoList: React.FC<TodoListProps> = ({ todoStats, onItemPress }) => {
       <View style={styles.todoContainer}>
         {!hasPendingTasks ? (
           <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>Tuyet voi! Khong co viec can xu ly</Text>
-            <Text style={styles.emptyText}>Khi co don moi hoac can canh bao, muc nay se cap nhat ngay.</Text>
+            <Text style={styles.emptyTitle}>Tuyệt vời! Không có việc cần xử lý</Text>
+            <Text style={styles.emptyText}>Khi có đơn mới hoặc cần cảnh báo, mục này sẽ cập nhật ngay.</Text>
           </View>
         ) : null}
         {todoData
@@ -90,48 +100,54 @@ const TodoList: React.FC<TodoListProps> = ({ todoStats, onItemPress }) => {
 
 const styles = StyleSheet.create({
   section: {
-    marginTop: 20,
+    marginTop: 32,
     paddingHorizontal: 16,
   },
   sectionHeader: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 12,
+    marginBottom: 16,
   },
   sectionIndicator: {
-    width: 4,
-    height: 18,
+    width: 3,
+    height: 16,
     borderRadius: 2,
-    marginRight: 8,
+    marginRight: 10,
+    backgroundColor: '#7C5CFF',
   },
   sectionTitle: {
-    fontSize: 16,
+    fontSize: 17,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#1B1530',
   },
   todoContainer: {
     backgroundColor: '#fff',
-    borderRadius: 16,
+    borderRadius: 20,
     overflow: 'hidden',
+    shadowColor: '#1B1530',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
     borderWidth: 1,
-    borderColor: '#f0f0f0',
+    borderColor: 'rgba(27, 21, 48, 0.03)',
   },
   emptyState: {
-    paddingHorizontal: 16,
-    paddingVertical: 18,
-    backgroundColor: '#f7fbff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#e8eef5',
+    padding: 24,
+    backgroundColor: '#fff',
+    alignItems: 'center',
   },
   emptyTitle: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#1B1530',
   },
   emptyText: {
     marginTop: 6,
-    fontSize: 12,
-    color: '#7f8c8d',
+    fontSize: 13,
+    color: '#A29DBA',
+    textAlign: 'center',
+    lineHeight: 20,
   },
 });
 

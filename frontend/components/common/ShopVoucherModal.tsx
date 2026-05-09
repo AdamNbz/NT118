@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import { apiClient } from '../../lib/apiClient';
 
 interface ShopVoucherModalProps {
@@ -35,7 +36,13 @@ export default function ShopVoucherModal({ visible, onClose, shopId, mode = 'cla
         <View style={styles.modalContent}>
           <View style={styles.modalHeader}>
             <Text style={styles.modalTitle}>Voucher của Shop</Text>
-            <TouchableOpacity onPress={onClose}>
+            <TouchableOpacity 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onClose();
+              }}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
           </View>

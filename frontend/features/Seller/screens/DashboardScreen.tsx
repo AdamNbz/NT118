@@ -25,6 +25,14 @@ const DashboardScreen: React.FC = () => {
   const hasBusinessData =
     !!stats && (stats.todayOrders > 0 || stats.todayRevenue > 0);
 
+  const { useFocusEffect } = require('expo-router');
+
+  useFocusEffect(
+    React.useCallback(() => {
+      retry();
+    }, [retry])
+  );
+
   React.useEffect(() => {
     if (error) {
       console.error('[DashboardScreen] Connection Error:', error);
@@ -145,56 +153,63 @@ const DashboardScreen: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f8f9fa',
+    backgroundColor: '#FAF7FF',
   },
   scrollContent: {
-    paddingBottom: 20,
+    paddingBottom: 40,
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
   },
   skeletonContainer: {
     flex: 1,
     padding: 16,
-    gap: 12,
+    gap: 16,
   },
   skeletonHeader: {
-    height: 18,
+    height: 20,
     width: '45%',
-    backgroundColor: '#eceff1',
+    backgroundColor: '#fff',
     borderRadius: 8,
     marginTop: 8,
   },
   skeletonGrid: {
     flexDirection: 'row',
-    gap: 10,
+    gap: 12,
   },
   skeletonCard: {
     flex: 1,
-    height: 100,
-    backgroundColor: '#eceff1',
-    borderRadius: 14,
-  },
-  skeletonPanel: {
-    height: 160,
-    backgroundColor: '#eceff1',
+    height: 128,
+    backgroundColor: '#fff',
     borderRadius: 16,
   },
+  skeletonPanel: {
+    height: 180,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+  },
   errorText: {
-    marginTop: 12,
+    marginTop: 16,
     fontSize: 16,
-    color: '#e74c3c',
+    color: '#FF4B4B',
     textAlign: 'center',
     marginBottom: 24,
+    fontWeight: '500',
+    lineHeight: 24,
   },
   retryButton: {
-    backgroundColor: '#e74c3c',
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: '#7C5CFF',
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 14,
+    shadowColor: '#7C5CFF',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 4,
   },
   retryButtonText: {
     color: '#fff',
@@ -202,43 +217,50 @@ const styles = StyleSheet.create({
     fontSize: 16,
   },
   emptyStateCard: {
-    marginTop: 20,
+    marginTop: 24,
     marginHorizontal: 16,
     backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: '#f0f0f0',
-    borderRadius: 16,
+    borderRadius: 20,
     alignItems: 'center',
-    padding: 20,
+    padding: 32,
+    shadowColor: '#1B1530',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.04,
+    shadowRadius: 12,
+    elevation: 2,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 21, 48, 0.03)',
   },
   emptyStateTitle: {
-    marginTop: 10,
-    fontSize: 17,
+    marginTop: 16,
+    fontSize: 18,
     fontWeight: '700',
-    color: '#2c3e50',
+    color: '#1B1530',
     textAlign: 'center',
   },
   emptyStateText: {
-    marginTop: 6,
+    marginTop: 8,
     textAlign: 'center',
-    color: '#7f8c8d',
+    color: '#A29DBA',
     fontSize: 14,
-    lineHeight: 20,
+    lineHeight: 22,
   },
   emptyStateButton: {
-    marginTop: 14,
-    backgroundColor: '#3498db',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 16,
+    marginTop: 24,
+    backgroundColor: '#7C5CFF',
+    borderRadius: 14,
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    width: '100%',
+    alignItems: 'center',
   },
   emptyStateButtonText: {
     color: '#fff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
   footerSpacing: {
-    height: 40,
+    height: 100,
   },
 });
 

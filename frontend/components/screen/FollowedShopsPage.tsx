@@ -7,18 +7,19 @@ import {
   TouchableOpacity, 
   Image, 
   ActivityIndicator,
-  StatusBar
+  StatusBar,
+  RefreshControl
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { getFollowedShops, toggleFollowShop } from '../../lib/shopApi';
-import { ShopDTO } from '../../lib/mockData';
+import { getFollowedShops, toggleFollowShop, ShopDTO } from '../../lib/shopApi';
 
 const FollowedShopsPage = () => {
   const router = useRouter();
   const [shops, setShops] = useState<ShopDTO[]>([]);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
   useEffect(() => {
     loadShops();
@@ -33,6 +34,7 @@ const FollowedShopsPage = () => {
       console.error('Failed to load followed shops:', err);
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   };
 
@@ -101,6 +103,9 @@ const FollowedShopsPage = () => {
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderShopItem}
         contentContainerStyle={styles.listContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadShops(); }} colors={['#F83758']} />
+        }
         ListEmptyComponent={
           <View style={styles.emptyContainer}>
             <Ionicons name="heart-dislike-outline" size={80} color="#DDD" />

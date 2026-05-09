@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Modal, View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 
 export const PLATFORM_VOUCHERS = [
   { 
@@ -98,7 +99,14 @@ export default function PlatformVoucherModal({
         <View style={styles.container}>
           <View style={styles.header}>
             <Text style={styles.title}>ShopeeLite Voucher</Text>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                onClose();
+              }} 
+              style={styles.closeBtn}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
               <Ionicons name="close" size={24} color="#333" />
             </TouchableOpacity>
           </View>

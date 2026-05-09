@@ -2,6 +2,7 @@ import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Dimensions, Share, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import * as Haptics from 'expo-haptics';
 
 const { width } = Dimensions.get('window');
 
@@ -49,7 +50,7 @@ const ProductCard: React.FC<ProductCardProps> = ({
     >
       <View style={[
         styles.productImageContainer,
-        isMasonry && product.imageHeight ? { height: product.imageHeight } : { aspectRatio: 1 }
+        isMasonry && product.imageHeight ? { height: product.imageHeight } : { aspectRatio: 1.05 }
       ]}>
         <Image 
           source={product.image} 
@@ -119,16 +120,16 @@ const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   productCard: {
     backgroundColor: '#FFFFFF',
-    borderRadius: 10,
-    marginBottom: 10,
+    borderRadius: 14,
+    marginBottom: 12,
     overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
-    borderWidth: 0.5,
-    borderColor: '#ECECEC',
+    shadowColor: '#1B1530',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 3,
+    borderWidth: 1,
+    borderColor: 'rgba(27, 21, 48, 0.03)',
   },
   horizontalCard: {
     width: 160,
@@ -180,17 +181,20 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF4D4F',
   },
   productInfo: {
-    padding: 8,
+    padding: 10,
+    flex: 1,
+    justifyContent: 'space-between',
+    minHeight: 110, // Ensure enough height to push footer to bottom consistently
   },
   productName: {
-    fontSize: 13,
-    fontWeight: '600',
+    fontSize: 14,
+    fontWeight: '700',
     lineHeight: 18,
-    color: '#1F2937',
-    marginBottom: 4,
+    color: '#1B1530',
+    height: 36, // Fixed height for 2 lines to keep alignment consistent
   },
   priceContainer: {
-    marginBottom: 4,
+    marginTop: 6,
   },
   mainPrice: {
     flexDirection: 'row',
@@ -203,44 +207,41 @@ const styles = StyleSheet.create({
     marginRight: 1,
   },
   productPrice: {
-    fontSize: 15,
-    fontWeight: '700',
+    fontSize: 17,
+    fontWeight: '800',
     color: '#EE4D2D',
   },
   originalPrice: {
-    fontSize: 12,
+    fontSize: 11,
     color: '#9CA3AF',
     textDecorationLine: 'line-through',
-    marginTop: 2,
+    marginTop: 1,
   },
   footerRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    marginTop: 4,
   },
   ratingBox: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#FFFBEB',
-    paddingHorizontal: 5,
-    paddingVertical: 2,
-    borderRadius: 4,
   },
   ratingText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
-    color: '#D97706',
-    marginLeft: 2,
+    color: '#1B1530',
+    marginLeft: 3,
   },
   divider: {
-    width: 1,
+    width: 1.2,
     height: 10,
     backgroundColor: '#E5E7EB',
-    marginHorizontal: 6,
+    marginHorizontal: 8,
   },
   soldText: {
-    fontSize: 11,
+    fontSize: 12,
     color: '#6B7280',
-    fontWeight: '500',
+    fontWeight: '400',
   },
 });
 

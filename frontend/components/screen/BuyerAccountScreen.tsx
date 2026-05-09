@@ -1,6 +1,6 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, Image } from 'react-native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { clearAuthToken } from '../../lib/authToken';
@@ -35,9 +35,22 @@ const BuyerAccountScreen: React.FC = () => {
     { key: 'review', icon: 'star-outline', label: 'Đánh giá', color: '#ef476f', bg: '#fff1f2', status: 'delivered' },
   ];
 
-  const handleLogout = async () => {
-    await clearAuthToken();
-    router.replace('/login' as any);
+  const handleLogout = () => {
+    require('react-native').Alert.alert(
+      'Đăng xuất',
+      'Bạn có chắc chắn muốn đăng xuất?',
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Đăng xuất',
+          style: 'destructive',
+          onPress: async () => {
+            await clearAuthToken();
+            router.replace('/login' as any);
+          },
+        },
+      ]
+    );
   };
 
   return (
@@ -45,7 +58,7 @@ const BuyerAccountScreen: React.FC = () => {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.content}>
         <View style={styles.header}>
           <Text style={styles.headerTitle}>Tài khoản</Text>
-          <TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/profile-view' as any)}>
             <Ionicons name="settings-outline" size={22} color="#3b82f6" />
           </TouchableOpacity>
         </View>
@@ -53,7 +66,11 @@ const BuyerAccountScreen: React.FC = () => {
         <View style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <View style={styles.avatarPlaceholder}>
+            {profile?.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={{ width: '100%', height: '100%', borderRadius: 32 }} />
+            ) : (
               <Ionicons name="person" size={32} color="#cbd5e1" />
+            )}
             </View>
           </View>
           <View style={styles.profileInfo}>
@@ -61,7 +78,7 @@ const BuyerAccountScreen: React.FC = () => {
             <Text style={styles.email}>{profile?.email || 'Chưa cập nhật email'}</Text>
             <View style={styles.memberBadge}>
               <Ionicons name="medal-outline" size={12} color="#F73658" />
-              <Text style={styles.memberText}>THÀNH VIÊN BẠC</Text>
+              <Text style={styles.memberText}>THÀNH VIÊN</Text>
             </View>
           </View>
         </View>

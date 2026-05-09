@@ -9,6 +9,7 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { formatPrice } from './cart.utils';
 import { Swipeable } from 'react-native-gesture-handler';
+import * as Haptics from 'expo-haptics';
 
 type CartItemProps = {
   checked: boolean;
@@ -43,7 +44,13 @@ export default function CartItem({
 }: CartItemProps) {
   const renderRightActions = () => {
     return (
-      <Pressable style={styles.deleteAction} onPress={onDelete}>
+      <Pressable 
+        style={styles.deleteAction} 
+        onPress={() => {
+          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+          onDelete?.();
+        }}
+      >
         <Ionicons name="trash-outline" size={24} color="#FFF" />
         <Text style={styles.deleteText}>Xóa</Text>
       </Pressable>
@@ -55,7 +62,10 @@ export default function CartItem({
       <View style={styles.container}>
         <Pressable
           style={[styles.checkbox, checked && styles.checkboxChecked]}
-          onPress={onToggle}
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onToggle?.();
+          }}
         >
           {checked && <Ionicons name="checkmark" size={14} color="#FFF" />}
         </Pressable>
@@ -97,7 +107,10 @@ export default function CartItem({
               <View style={styles.stepper}>
                 <Pressable 
                   style={[styles.stepBtn, quantity <= 1 && styles.stepBtnDisabled]} 
-                  onPress={onDecrease}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onDecrease?.();
+                  }}
                 >
                   <Text style={[styles.stepText, quantity <= 1 && styles.stepTextDisabled]}>−</Text>
                 </Pressable>
@@ -106,7 +119,13 @@ export default function CartItem({
                   <Text style={styles.qtyText}>{quantity}</Text>
                 </View>
 
-                <Pressable style={styles.stepBtn} onPress={onIncrease}>
+                <Pressable 
+                  style={styles.stepBtn} 
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    onIncrease?.();
+                  }}
+                >
                   <Text style={styles.stepText}>+</Text>
                 </Pressable>
               </View>

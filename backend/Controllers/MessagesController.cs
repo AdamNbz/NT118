@@ -33,11 +33,9 @@ public class MessagesController(
             .Select(g => new
             {
                 PartnerId = g.Key,
-                LastMessage = g.OrderByDescending(m => m.SentAt).First().Content,
-                LastMessageTime = g.OrderByDescending(m => m.SentAt).First().SentAt,
+                LastMessageData = g.OrderByDescending(m => m.SentAt).ThenByDescending(m => m.Id).First(),
                 UnreadCount = g.Count(m => m.ReceiverId == userId && !m.IsRead),
             })
-            .OrderByDescending(c => c.LastMessageTime)
             .ToListAsync(ct);
 
         // Fetch partner user info
@@ -61,16 +59,26 @@ public class MessagesController(
         {
             userMap.TryGetValue(c.PartnerId, out var user);
             profileMap.TryGetValue(c.PartnerId, out var profile);
+            
+            var lastMsg = c.LastMessageData;
+            string? previewText = lastMsg.MessageType switch
+            {
+                MessageType.image => "[Hình ảnh]",
+                MessageType.file => "[Tệp tin]",
+                MessageType.product => "[Sản phẩm]",
+                _ => lastMsg.Content
+            };
+
             return new
             {
                 c.PartnerId,
                 PartnerName = profile?.FullName ?? user?.Username ?? $"User #{c.PartnerId}",
                 PartnerAvatar = profile?.AvatarUrl,
-                c.LastMessage,
-                c.LastMessageTime,
+                LastMessage = previewText,
+                LastMessageTime = lastMsg.SentAt,
                 c.UnreadCount,
             };
-        }).ToList();
+        }).OrderByDescending(c => c.LastMessageTime).ToList();
 
         return Ok(result);
     }

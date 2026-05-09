@@ -1,6 +1,23 @@
 import { apiClient } from './apiClient';
-import { ShopDTO } from './mockData';
 import { ProductDTO, getProducts } from './productApi';
+
+export interface ShopDTO {
+  id: number;
+  ownerId: number;
+  name: string;
+  slug: string;
+  description: string | null;
+  logoUrl: string | null;
+  coverImageUrl: string | null;
+  address: string | null;
+  phone: string | null;
+  email: string | null;
+  rating: number;
+  totalReviews: number;
+  totalProducts: number;
+  isVerified: boolean;
+  createdAt: string;
+}
 
 export interface CreateShopRequest {
   name: string;

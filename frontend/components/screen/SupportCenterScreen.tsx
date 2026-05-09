@@ -1,6 +1,6 @@
 import React from 'react';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Linking, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 
@@ -41,12 +41,12 @@ const SupportCenterScreen: React.FC = () => {
         </View>
 
         <View style={styles.actionRow}>
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => router.push('/chat' as any)}>
             <Ionicons name="chatbubble-ellipses-outline" size={22} color="#3b82f6" />
             <Text style={styles.actionTitle}>Chat với CSKH</Text>
             <Text style={styles.actionSubtitle}>Phản hồi trong vài phút</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.actionCard}>
+          <TouchableOpacity style={styles.actionCard} onPress={() => Linking.openURL('tel:19001234')}>
             <Ionicons name="call-outline" size={22} color="#10b981" />
             <Text style={styles.actionTitle}>Gọi hotline</Text>
             <Text style={styles.actionSubtitle}>1900 1234</Text>

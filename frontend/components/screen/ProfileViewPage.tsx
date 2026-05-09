@@ -70,7 +70,11 @@ const ProfileViewPage = () => {
         <View style={styles.profileCard}>
           <View style={styles.avatarRing}>
             <View style={styles.avatarPlaceholder}>
+            {profile?.avatarUrl ? (
+              <Image source={{ uri: profile.avatarUrl }} style={{ width: '100%', height: '100%', borderRadius: 50 }} />
+            ) : (
               <Ionicons name="person" size={50} color="#cbd5e1" />
+            )}
             </View>
           </View>
           <Text style={styles.profileName}>{profile?.name || 'Người dùng'}</Text>

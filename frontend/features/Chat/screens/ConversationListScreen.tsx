@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, FlatList, TouchableOpacity, TextInput, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Feather } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
+import { useRouter, useFocusEffect } from 'expo-router';
 import ConversationItem, { Conversation } from '../components/ConversationItem';
 import { LinearGradient } from 'expo-linear-gradient';
 import { getConversations, ConversationDTO, useChatSignalR, RealtimeMessage } from '../../../lib/messageApi';
@@ -50,8 +50,9 @@ const ConversationListScreen = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  const loadConversations = useCallback(async () => {
+  const loadConversations = useCallback(async (showLoading = true) => {
     try {
+      if (showLoading) setLoading(true);
       const data = await getConversations();
       setConversations(data.map(dtoToConversation));
     } catch (e) {
@@ -62,9 +63,11 @@ const ConversationListScreen = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadConversations();
-  }, [loadConversations]);
+  useFocusEffect(
+    useCallback(() => {
+      loadConversations(false);
+    }, [loadConversations])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);

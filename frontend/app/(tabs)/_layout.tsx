@@ -6,10 +6,12 @@ import { Feather, Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { Colors } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useNotifications, useNotificationSignalR } from '@/lib/notificationApi';
+import { useCartCount } from '@/hooks/useCartCount';
 
 export default function TabLayout() {
   const colorScheme = useColorScheme();
   const { unreadCount, loadUnreadCount, handleRealtimeNotification } = useNotifications();
+  const cartCount = useCartCount();
 
   useNotificationSignalR(handleRealtimeNotification);
 
@@ -64,8 +66,19 @@ export default function TabLayout() {
           title: '',
           tabBarIcon: ({ focused }) => (
             <View style={styles.cartButtonContainer}>
-              <View style={styles.cartButton}>
-                <Feather name="shopping-cart" size={24} color="black" />
+              <View style={[styles.cartButton, focused && styles.cartButtonActive]}>
+                <Feather 
+                  name="shopping-cart" 
+                  size={24} 
+                  color={focused ? '#FF4747' : '#1B1530'} 
+                />
+                {cartCount > 0 && (
+                  <View style={styles.cartBadge}>
+                    <Text style={styles.cartBadgeText}>
+                      {cartCount > 99 ? '99+' : cartCount}
+                    </Text>
+                  </View>
+                )}
               </View>
             </View>
           ),
@@ -119,13 +132,19 @@ const styles = StyleSheet.create({
     backgroundColor: 'white',
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
+    shadowColor: '#1B1530',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.2,
-    shadowRadius: 5,
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
     elevation: 5,
     borderWidth: 1,
-    borderColor: '#F2F2F2',
+    borderColor: 'rgba(124, 92, 255, 0.05)',
+  },
+  cartButtonActive: {
+    borderColor: '#FF4747',
+    borderWidth: 1.5,
+    shadowColor: '#FF4747',
+    shadowOpacity: 0.25,
   },
   notifBadge: {
     position: 'absolute',
@@ -144,6 +163,25 @@ const styles = StyleSheet.create({
   notifBadgeText: {
     color: '#FFFFFF',
     fontSize: 10,
+    fontWeight: 'bold',
+  },
+  cartBadge: {
+    position: 'absolute',
+    top: -5,
+    right: -8,
+    backgroundColor: '#FF4747',
+    borderRadius: 9,
+    minWidth: 18,
+    height: 18,
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 4,
+    borderWidth: 1.5,
+    borderColor: '#FFFFFF',
+  },
+  cartBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 9,
     fontWeight: 'bold',
   },
 });

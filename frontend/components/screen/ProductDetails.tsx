@@ -1,16 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, Dimensions, Platform, StatusBar, ActivityIndicator, FlatList, Alert, Modal, Pressable } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, Dimensions, Platform, StatusBar, ActivityIndicator, FlatList, Alert, Modal, Pressable, Share } from 'react-native';
 import { Ionicons, MaterialCommunityIcons, Feather } from '@expo/vector-icons';
+import * as Haptics from 'expo-haptics';
 import ProductCard, { Product } from '../common/ProductCard';
 import { getProductById, getProducts, ProductDTO, formatPriceFull, formatSold } from '../../lib/productApi';
+import { getCategories } from '../../lib/categoryApi';
 import { toggleFavorite, getFavoriteStatus } from '../../lib/wishlistApi';
 import { getProductReviews, ReviewDto } from '../../lib/reviewApi';
-import { ShopDTO } from '../../lib/mockData';
-import { getShopById } from '../../lib/shopApi';
+import { ShopDTO, getShopById } from '../../lib/shopApi';
 import { addToCart } from '../../lib/cartApi';
 import { getMyOrders, getOrderDetail } from '../../lib/orderApi';
 import { useRouter } from 'expo-router';
 import ShopVoucherModal from '../common/ShopVoucherModal';
+import Skeleton from '../common/Skeleton';
 
 const { width } = Dimensions.get('window');
 
@@ -39,6 +41,9 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
   const [selectedVariants, setSelectedVariants] = useState<Record<string, string>>({}); // { "Màu sắc": "Đỏ", "Kích cỡ": "42" }
   const [modalMode, setModalMode] = useState<'cart' | 'buy'>('cart');
   const [showShopVoucherModal, setShowShopVoucherModal] = useState(false);
+  const [cartCount, setCartCount] = useState(0);
+  const [descriptionExpanded, setDescriptionExpanded] = useState(false);
+  const [categoryName, setCategoryName] = useState<string>('');
   
   const router = useRouter();
 
@@ -52,25 +57,26 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
       const data = await getProductById(productId);
       setProduct(data);
 
-      // Load shop details
-      try {
-        const shopData = await getShopById(data.shopId);
-        setShop(shopData);
-      } catch (err) { console.log('Failed to load shop:', err); }
+      // Batch independent API calls in parallel
+      const [shopData, favStatus, cats, related, reviewResponse, cartCount] = await Promise.all([
+        getShopById(data.shopId).catch(() => null),
+        getFavoriteStatus(productId).catch(() => false),
+        getCategories().catch(() => []),
+        getProducts({ categoryId: data.categoryId, pageSize: 4 }).catch(() => ({ data: [] })),
+        getProductReviews(productId, 1, 10).catch(() => ({ reviews: [] })),
+        import('../../lib/cartApi').then(m => m.getCartCount()).catch(() => 0),
+      ]);
 
-      // Load favorite status
-      try {
-        const favStatus = await getFavoriteStatus(productId);
-        setIsFavorited(favStatus);
-      } catch { /* user not logged in */ }
+      if (shopData) setShop(shopData);
+      setIsFavorited(favStatus);
+      const cat = cats.find((c: any) => c.id === data.categoryId);
+      if (cat) setCategoryName(cat.name);
 
-      // Load related products from same category
-      const related = await getProducts({ categoryId: data.categoryId, pageSize: 4 });
       setRelatedProducts(
-        related.data
-          .filter(p => p.id !== data.id)
+        (related as any).data
+          .filter((p: any) => p.id !== data.id)
           .slice(0, 4)
-          .map(dto => ({
+          .map((dto: any) => ({
             id: dto.id,
             name: dto.name,
             description: dto.description || '',
@@ -84,18 +90,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           }))
       );
 
-      // Load reviews
-      try {
-        setReviewsLoading(true);
-        const reviewResponse = await getProductReviews(productId, 1, 10);
-        setReviews(reviewResponse.reviews);
-      } catch (err) {
-        console.log('Failed to load reviews:', err);
-      } finally {
-        setReviewsLoading(false);
-      }
+      setReviews((reviewResponse as any).reviews || []);
+      setCartCount(cartCount as number);
 
-      // Check if user has a delivered order containing this product
+      // Check if user has a delivered order containing this product (sequential is fine here)
       try {
         const myOrders = await getMyOrders();
         const deliveredOrders = myOrders.filter(o => o.status === 'delivered');
@@ -122,9 +120,36 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safeArea, { justifyContent: 'center', alignItems: 'center' }]}>
-        <ActivityIndicator size="large" color="#F83758" />
-        <Text style={{ marginTop: 12, color: '#666' }}>Đang tải sản phẩm...</Text>
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.header}>
+          <TouchableOpacity style={styles.iconButton} onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={24} color="#F83758" />
+          </TouchableOpacity>
+          <Skeleton width={width * 0.6} height={20} borderRadius={10} />
+          <View style={styles.headerRight}>
+            <Skeleton width={32} height={32} circle />
+            <Skeleton width={32} height={32} circle />
+          </View>
+        </View>
+        <ScrollView showsVerticalScrollIndicator={false}>
+          <Skeleton width={width} height={width * 0.8} borderRadius={0} />
+          <View style={styles.sectionHeader}>
+            <View style={{ gap: 12 }}>
+              <Skeleton width="90%" height={24} />
+              <Skeleton width="60%" height={28} />
+              <View style={{ flexDirection: 'row', gap: 12 }}>
+                <Skeleton width={100} height={16} />
+                <Skeleton width={80} height={16} />
+              </View>
+            </View>
+          </View>
+          <View style={styles.divider} />
+          <View style={{ padding: 16, gap: 16 }}>
+            <Skeleton width="100%" height={50} />
+            <Skeleton width="100%" height={50} />
+            <Skeleton width="100%" height={120} />
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }
@@ -152,14 +177,22 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           {product.name}
         </Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
+          <TouchableOpacity style={styles.iconButton} onPress={async () => {
+            try {
+              await Share.share({
+                message: `${product.name} - ${formatPriceFull(product.price)} | Xem tại ShopeeLite`,
+              });
+            } catch (e) { /* user cancelled */ }
+          }}>
             <Ionicons name="share-social-outline" size={24} color="#F83758" />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton} onPress={() => router.push('/(tabs)/cart')}>
             <Ionicons name="cart-outline" size={24} color="#F83758" />
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>3</Text>
-            </View>
+            {cartCount > 0 && (
+              <View style={styles.badge}>
+                <Text style={styles.badgeText}>{cartCount > 99 ? '99+' : cartCount}</Text>
+              </View>
+            )}
           </TouchableOpacity>
         </View>
       </View>
@@ -249,6 +282,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
                 if (favLoading) return;
                 setFavLoading(true);
                 try {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
                   const result = await toggleFavorite(productId);
                   setIsFavorited(result.isFavorited);
                 } catch (err) { console.log('Favorite toggle failed:', err); }
@@ -271,10 +305,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           <Text style={styles.rowLabel}>Voucher của Shop</Text>
           <View style={styles.voucherTagsContainer}>
             <View style={styles.voucherTag}>
-              <Text style={styles.voucherTagText}>Giảm ₫20k</Text>
-            </View>
-            <View style={styles.voucherTag}>
-              <Text style={styles.voucherTagText}>Giảm ₫50k</Text>
+              <Text style={styles.voucherTagText}>Xem voucher</Text>
             </View>
           </View>
           <Ionicons name="chevron-forward" size={20} color="#666" />
@@ -320,7 +351,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           </View>
           <View style={styles.shopInfoCenter}>
             <Text style={styles.shopName}>{shop?.name || 'Đang tải...'}</Text>
-            <Text style={styles.shopOnlineStatus}>ONLINE 5 PHÚT TRƯỚC</Text>
+            <Text style={styles.shopOnlineStatus}>Online</Text>
             <View style={styles.shopStats}>
               <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{shop?.totalProducts || 0}</Text> Sản phẩm</Text>
               <Text style={styles.shopStatText}><Text style={styles.shopStatHighlight}>{shop?.rating || 0}</Text> Đánh giá</Text>
@@ -343,7 +374,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           
           <View style={styles.detailDataRow}>
             <Text style={styles.detailDataLabel}>Danh mục</Text>
-            <Text style={styles.detailDataValueLink}>ShopeeLite &gt; Công nghệ</Text>
+            <Text style={styles.detailDataValueLink}>ShopeeLite &gt; {categoryName || 'Đang tải...'}</Text>
           </View>
           {product.brand && (
             <View style={styles.detailDataRow}>
@@ -365,12 +396,12 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           )}
 
           {product.description ? (
-            <Text style={styles.detailDescriptionParagraph}>{product.description}</Text>
+            <Text style={styles.detailDescriptionParagraph} numberOfLines={descriptionExpanded ? undefined : 4}>{product.description}</Text>
           ) : null}
 
-          <TouchableOpacity style={styles.viewMoreButton}>
-            <Text style={styles.viewMoreText}>Xem thêm</Text>
-            <Ionicons name="chevron-down" size={16} color="#F83758" />
+          <TouchableOpacity style={styles.viewMoreButton} onPress={() => setDescriptionExpanded(!descriptionExpanded)}>
+            <Text style={styles.viewMoreText}>{descriptionExpanded ? 'Thu gọn' : 'Xem thêm'}</Text>
+            <Ionicons name={descriptionExpanded ? 'chevron-up' : 'chevron-down'} size={16} color="#F83758" />
           </TouchableOpacity>
         </View>
 
@@ -380,7 +411,10 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
         <View style={styles.reviewsSection}>
           <View style={styles.sectionHeaderRow}>
             <Text style={styles.detailsTitle}>ĐÁNH GIÁ SẢN PHẨM</Text>
-            <TouchableOpacity onPress={() => {}}>
+            <TouchableOpacity onPress={() => {
+              // Scroll to show all reviews - for now navigate to a filtered view
+              setReviewFilter('all');
+            }}>
               <Text style={styles.viewAllTextRed}>Xem tất cả</Text>
             </TouchableOpacity>
           </View>
@@ -490,7 +524,7 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           <View style={styles.similarProductsSection}>
             <View style={styles.similarHeader}>
               <Text style={styles.detailsTitle}>SẢN PHẨM TƯƠNG TỰ</Text>
-              <TouchableOpacity>
+              <TouchableOpacity onPress={() => router.push(`/search?categoryId=${product.categoryId}` as any)}>
                 <Text style={styles.viewAllTextRed}>Xem tất cả</Text>
               </TouchableOpacity>
             </View>
@@ -523,16 +557,21 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
           onPress={() => setIsSelectionModalVisible(false)}
         >
           <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
+            <TouchableOpacity 
+              style={styles.closeModalBtnTop} 
+              onPress={() => {
+                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                setIsSelectionModalVisible(false);
+              }}
+              hitSlop={{ top: 15, bottom: 15, left: 15, right: 15 }}
+            >
+              <Ionicons name="close" size={24} color="#999" />
+            </TouchableOpacity>
+
             {/* Header: Product Info Preview */}
             <View style={styles.modalHeader}>
               <Image source={{ uri: product.image || '' }} style={styles.modalProductImage} />
               <View style={styles.modalHeaderInfo}>
-                <TouchableOpacity 
-                  style={styles.closeModalBtn} 
-                  onPress={() => setIsSelectionModalVisible(false)}
-                >
-                  <Ionicons name="close" size={24} color="#999" />
-                </TouchableOpacity>
                 <Text style={styles.modalPrice}>{formatPriceFull(product.price)}</Text>
                 <Text style={styles.modalStock}>Kho: {product.stockQuantity}</Text>
               </View>
@@ -616,9 +655,14 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
                 try {
                   const result = await addToCart(productId, selectedQuantity, variantId);
                   if (result.success) {
+                    Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
                     if (modalMode === 'buy') {
                        router.push('/(tabs)/cart');
                     } else {
+                      // Update cart count
+                      const { getCartCount } = await import('../../lib/cartApi');
+                      const count = await getCartCount();
+                      setCartCount(count);
                       Alert.alert('Thành công', 'Đã thêm sản phẩm vào giỏ hàng.');
                     }
                   } else {
@@ -1267,11 +1311,14 @@ const styles = StyleSheet.create({
     paddingLeft: 16,
     justifyContent: 'center',
   },
-  closeModalBtn: {
+  closeModalBtnTop: {
     position: 'absolute',
-    top: -4,
-    right: -4,
-    padding: 4,
+    top: 12,
+    right: 12,
+    padding: 8,
+    zIndex: 100,
+    backgroundColor: 'rgba(255,255,255,0.8)',
+    borderRadius: 20,
   },
   modalPrice: {
     fontSize: 20,

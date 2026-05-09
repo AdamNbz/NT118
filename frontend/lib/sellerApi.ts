@@ -1,6 +1,7 @@
 import { apiClient } from './apiClient';
 
 export interface SellerTodoStats {
+  ordersToConfirm: number;
   ordersToShip: number;
   cancelledOrders: number;
   returnRequests: number;

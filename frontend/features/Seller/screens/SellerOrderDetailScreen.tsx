@@ -20,12 +20,12 @@ const STATUS_FLOW: Record<string, { next: string; label: string; color: string }
 };
 
 const STATUS_LABELS: Record<string, string> = {
-  pending: 'Chờ xác nhận',
-  confirmed: 'Đã xác nhận',
-  shipping: 'Đang giao hàng',
-  delivered: 'Đã giao hàng',
-  cancelled: 'Đã hủy',
-  refunded: 'Đã hoàn tiền',
+  pending: 'CHỜ XÁC NHẬN',
+  confirmed: 'CHỜ GIAO',
+  shipping: 'ĐANG GIAO',
+  delivered: 'HOÀN TẤT',
+  cancelled: 'ĐÃ HUỶ',
+  refunded: 'HOÀN TRẢ',
 };
 
 const PAYMENT_STATUS_LABELS: Record<string, string> = {

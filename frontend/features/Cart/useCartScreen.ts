@@ -1,5 +1,6 @@
 import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
+import { LayoutAnimation } from 'react-native';
 import { CartSectionType } from './cart.types';
 import {
   getCartSummary,
@@ -11,44 +12,36 @@ import {
 } from './cart.utils';
 import { Product } from '@/components/common/ProductCard';
 import { getCartItems, updateCartItemQuantity, deleteCartItem } from '../../lib/cartApi';
-
-const recommendedProducts: Product[] = [
-  {
-    id: 'p1',
-    name: 'Áo thun Cotton Basic Unisex',
-    description: 'Chất vải mềm mại, form rộng dễ mặc hằng ngày',
-    price: '₫129.000',
-    originalPrice: '₫199.000',
-    discount: '-35%',
-    rating: 4.5,
-    reviews: '1.2k',
-    image: { uri: 'https://picsum.photos/202' },
-  },
-  {
-    id: 'p2',
-    name: 'Đồng hồ thông minh Series 8',
-    description: 'Thiết kế hiện đại, theo dõi sức khỏe và vận động',
-    price: '₫1.450.000',
-    originalPrice: '₫1.890.000',
-    discount: '-23%',
-    rating: 4.8,
-    reviews: '860',
-    image: { uri: 'https://picsum.photos/203' },
-  },
-];
+import { getFeaturedProducts, formatPrice, formatSold } from '../../lib/productApi';
 
 export default function useCartScreen() {
   const router = useRouter();
   const [sections, setSections] = useState<CartSectionType[]>([]);
+  const [recommendedProducts, setRecommendedProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const fetchCart = useCallback(async () => {
     setIsLoading(true);
     try {
-      const items = await getCartItems();
+      const [items, featured] = await Promise.all([
+        getCartItems(),
+        getFeaturedProducts(6)
+      ]);
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setSections(mapBackendCartToSections(items));
+      setRecommendedProducts(featured.map(dto => ({
+        id: dto.id,
+        name: dto.name,
+        description: dto.description || '',
+        price: formatPrice(dto.price),
+        originalPrice: dto.originalPrice ? formatPrice(dto.originalPrice) : undefined,
+        discount: dto.discount > 0 ? `-${dto.discount}%` : undefined,
+        rating: dto.rating,
+        reviews: formatSold(dto.soldQuantity),
+        image: dto.image ? { uri: dto.image } : require('../../assets/images/Group 34010.png'),
+      })));
     } catch (error) {
-      console.error('Failed to fetch cart:', error);
+      console.error('Failed to fetch cart data:', error);
     } finally {
       setIsLoading(false);
     }
@@ -61,10 +54,12 @@ export default function useCartScreen() {
   const summary = useMemo(() => getCartSummary(sections), [sections]);
 
   const handleToggleShop = (shopId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSections(prev => toggleShopChecked(prev, shopId));
   };
 
   const handleToggleItem = (shopId: string, itemId: string) => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSections(prev => toggleItemChecked(prev, shopId, itemId));
   };
 
@@ -78,6 +73,7 @@ export default function useCartScreen() {
 
     const res = await updateCartItemQuantity(parseInt(itemId), newQty);
     if (res.success) {
+      LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
       setSections(prev => {
         return prev.map(section => {
           if (section.shopId !== shopId) return section;
@@ -112,6 +108,7 @@ export default function useCartScreen() {
   };
 
   const handleToggleAll = () => {
+    LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
     setSections(prev => toggleAllChecked(prev));
   };
 
@@ -169,6 +166,7 @@ export default function useCartScreen() {
     try {
       const success = await deleteCartItem(parseInt(itemId));
       if (success) {
+        LayoutAnimation.configureNext(LayoutAnimation.Presets.easeInEaseOut);
         setSections(prev => {
           return prev.map(section => ({
             ...section,

@@ -49,7 +49,7 @@ public class LuckyWheelController(AppDbContext db) : ControllerBase
         {
             freeSpins = account.FreeSpins,
             spinCostXu = SPIN_COST_XU,
-            walletBalance = wallet?.Balance ?? 0m,
+            walletBalance = wallet?.CoinBalance ?? 0m,
             prizes = Prizes.Select(p => new { p.Id, p.Label, p.XuAmount, voucherType = p.VoucherType, voucherValue = p.VoucherValue }),
         });
     }
@@ -70,10 +70,10 @@ public class LuckyWheelController(AppDbContext db) : ControllerBase
         {
             // Pay with xu
             wallet = await db.Wallets.FirstOrDefaultAsync(w => w.UserId == userId, ct);
-            if (wallet == null || wallet.Balance < SPIN_COST_XU)
+            if (wallet == null || wallet.CoinBalance < SPIN_COST_XU)
                 return BadRequest(new { message = "Số xu không đủ để quay. Bạn cần 750 xu." });
 
-            wallet.Balance -= SPIN_COST_XU;
+            wallet.CoinBalance -= SPIN_COST_XU;
             wallet.UpdatedAt = DateTime.UtcNow;
 
             db.WalletTransactions.Add(new WalletTransaction
@@ -112,7 +112,7 @@ public class LuckyWheelController(AppDbContext db) : ControllerBase
                 await db.SaveChangesAsync(ct);
             }
 
-            wallet.Balance += prize.XuAmount;
+            wallet.CoinBalance += prize.XuAmount;
             wallet.UpdatedAt = DateTime.UtcNow;
             rewardXu = prize.XuAmount;
 
@@ -176,7 +176,7 @@ public class LuckyWheelController(AppDbContext db) : ControllerBase
             rewardXu,
             rewardDescription,
             freeSpinsRemaining = account.FreeSpins,
-            walletBalance = wallet?.Balance ?? 0m,
+            walletBalance = wallet?.CoinBalance ?? 0m,
         });
     }
 

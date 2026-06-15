@@ -355,11 +355,12 @@ using (var scope = app.Services.CreateScope())
         ALTER TABLE shops
             ADD COLUMN IF NOT EXISTS pickup_address VARCHAR(500),
             ADD COLUMN IF NOT EXISTS type shop_type DEFAULT 'individual';
+
+        ALTER TABLE wallets
+            ADD COLUMN IF NOT EXISTS coin_balance DECIMAL(15,2) NOT NULL DEFAULT 0.00;
     ");
 
-    // Apply pending migrations only if the database is already managed by EF migrations.
-    // If the DB was created from init.sql (no __EFMigrationsHistory), running Migrate() can fail
-    // with PendingModelChangesWarning.
+    
     try
     {
         var hasHistory = db.Database.SqlQueryRaw<bool>("SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_schema = 'public' AND table_name = '__EFMigrationsHistory')").AsEnumerable().FirstOrDefault();
@@ -560,6 +561,7 @@ using (var scope = app.Services.CreateScope())
             id BIGSERIAL PRIMARY KEY,
             user_id BIGINT NOT NULL UNIQUE REFERENCES users(id) ON DELETE CASCADE,
             balance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
+            coin_balance DECIMAL(15,2) NOT NULL DEFAULT 0.00,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
@@ -583,6 +585,29 @@ using (var scope = app.Services.CreateScope())
             last_slot1_claim_date TIMESTAMP,
             last_slot2_claim_date TIMESTAMP
         );
+
+        CREATE TABLE IF NOT EXISTS missions (
+            id BIGSERIAL PRIMARY KEY,
+            title VARCHAR(255) NOT NULL,
+            description VARCHAR(1000),
+            type INTEGER NOT NULL,
+            reward_xu INTEGER NOT NULL DEFAULT 0,
+            is_daily BOOLEAN NOT NULL DEFAULT FALSE,
+            is_active BOOLEAN NOT NULL DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS user_missions (
+            id BIGSERIAL PRIMARY KEY,
+            user_id BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+            mission_id BIGINT NOT NULL REFERENCES missions(id) ON DELETE CASCADE,
+            status VARCHAR(50) NOT NULL DEFAULT 'todo',
+            claimed_at TIMESTAMP,
+            created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+            updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+        );
+        CREATE INDEX IF NOT EXISTS idx_user_missions_user ON user_missions(user_id);
     ");
 }
 

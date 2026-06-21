@@ -11,7 +11,7 @@ namespace Backend.Controllers;
 [ApiController]
 [Authorize]
 [Route("api/seller")]
-public class SellerController(AppDbContext db, INotificationRealtimeService notificationService) : ControllerBase
+public class SellerController(AppDbContext db, INotificationRealtimeService notificationService, IShipperTrackingSimulator trackingSimulator) : ControllerBase
 {
     [HttpGet("dashboard")]
     public async Task<ActionResult<SellerDashboardStats>> GetDashboardStats(CancellationToken cancellationToken)
@@ -33,8 +33,8 @@ public class SellerController(AppDbContext db, INotificationRealtimeService noti
                     Slug = $"shop-{userId}-{Guid.NewGuid().ToString()[..8]}",
                     Status = ShopStatus.active,
                     IsVerified = true,
-                    CreatedAt = DateTime.Now,
-                    UpdatedAt = DateTime.Now
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
                 };
                 db.Shops.Add(shop);
                 await db.SaveChangesAsync(cancellationToken);
@@ -349,54 +349,6 @@ public class SellerController(AppDbContext db, INotificationRealtimeService noti
         return Ok(new { message = "Thêm sản phẩm thành công.", product.Id });
     }
 
-    [HttpPut("products/{id:long}")]
-    public async Task<IActionResult> UpdateSellerProduct(long id, [FromBody] CreateSellerProductRequest body, CancellationToken cancellationToken)
-    {
-        if (!this.TryGetCurrentUserId(out var userId))
-            return Unauthorized();
-
-        var product = await db.Products.Include(p => p.Images).FirstOrDefaultAsync(x => x.Id == id, cancellationToken);
-        if (product is null)
-            return NotFound(new { message = "Không tìm thấy sản phẩm." });
-
-        var isAdmin = this.IsAdmin();
-        var isSellerOfProduct = await db.Shops.AnyAsync(
-            x => x.Id == product.ShopId && x.OwnerId == userId, cancellationToken);
-
-        if (!isSellerOfProduct && !isAdmin)
-            return Forbid();
-
-        var slugExists = await db.Products.AnyAsync(x => x.Slug == body.Slug && x.Id != id, cancellationToken);
-        if (slugExists)
-            return Conflict(new { message = "Slug sản phẩm đã tồn tại." });
-
-        var now = DateTime.UtcNow;
-        product.CategoryId = body.CategoryId;
-        product.Name = body.Name;
-        product.Slug = body.Slug;
-        product.Description = body.Description;
-        product.Price = body.Price;
-        product.OriginalPrice = body.OriginalPrice;
-        product.StockQuantity = body.StockQuantity;
-        product.WeightGrams = body.WeightGrams;
-        product.UpdatedAt = now;
-
-        if (body.ImageUrls != null)
-        {
-            db.ProductImages.RemoveRange(product.Images);
-            product.Images = body.ImageUrls.Select((url, index) => new ProductImage
-            {
-                ImageUrl = url,
-                IsMain = index == 0,
-                SortOrder = index,
-                CreatedAt = now
-            }).ToList();
-        }
-
-        await db.SaveChangesAsync(cancellationToken);
-        return Ok(new { message = "Cập nhật sản phẩm thành công." });
-    }
-
     [HttpGet("orders")]
     public async Task<ActionResult<IReadOnlyList<object>>> GetSellerOrders(CancellationToken cancellationToken)
     {
@@ -543,8 +495,14 @@ public class SellerController(AppDbContext db, INotificationRealtimeService noti
         if (!validTransitions.TryGetValue(order.Status, out var allowed) || !allowed.Contains(body.Status))
             return BadRequest(new { message = $"Không thể chuyển trạng thái từ '{order.Status}' sang '{body.Status}'." });
 
+        var oldStatus = order.Status;
         order.Status = body.Status;
         order.UpdatedAt = DateTime.UtcNow;
+
+        if (body.Status == OrderStatus.shipping && oldStatus != OrderStatus.shipping)
+        {
+            trackingSimulator.StartTrackingSimulation(order.Id);
+        }
 
         // Create notification for the buyer
         var statusLabels = new Dictionary<OrderStatus, string>

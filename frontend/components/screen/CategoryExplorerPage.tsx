@@ -1,17 +1,7 @@
+import { FlashList } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  FlatList, 
-  TouchableOpacity, 
-  Image, 
-  ActivityIndicator,
-  Dimensions,
-  StatusBar,
-  Platform,
-  RefreshControl
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, Dimensions, StatusBar, Platform, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -87,8 +77,7 @@ const CategoryExplorerPage = () => {
         </TouchableOpacity>
       </View>
 
-      <FlatList
-        data={categories}
+      <FlashList data={categories}
         keyExtractor={(item) => item.id.toString()}
         renderItem={renderCategoryItem}
         numColumns={COLUMN_COUNT}

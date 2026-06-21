@@ -1,5 +1,6 @@
+import { FlashList } from '@shopify/flash-list';
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, StyleSheet, FlatList, ActivityIndicator, Text, ScrollView, Dimensions, Modal } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Text, ScrollView, Dimensions, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import CustomSearchHeader from '../common/CustomSearchHeader';
@@ -151,12 +152,10 @@ export default function SearchDetail({ visible, onClose }: SearchDetailProps) {
         {loading && searchQuery.trim() ? (
           <ActivityIndicator size="large" color="#4392F9" style={styles.loader} />
         ) : searchQuery.trim() && products.length > 0 ? (
-          <FlatList
-            data={products}
+          <FlashList data={products}
             keyExtractor={(item) => item.id.toString()}
             numColumns={2}
             contentContainerStyle={styles.listContainer}
-            columnWrapperStyle={styles.row}
             showsVerticalScrollIndicator={false}
             renderItem={({ item }) => (
               <ProductCard 

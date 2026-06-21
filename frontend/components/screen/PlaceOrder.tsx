@@ -1,5 +1,6 @@
+import { Image } from 'expo-image';
 import React, { useEffect, useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image, ScrollView, SafeAreaView, Platform, StatusBar, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ScrollView, SafeAreaView, Platform, StatusBar, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { getProductById, ProductDTO, formatPriceFull } from '../../lib/productApi';
 import { toggleFavorite, getFavoriteStatus } from '../../lib/wishlistApi';

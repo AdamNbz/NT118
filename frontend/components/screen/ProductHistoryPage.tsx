@@ -1,5 +1,7 @@
+import { FlashList } from '@shopify/flash-list';
+import { Image } from 'expo-image';
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
@@ -71,8 +73,7 @@ const ProductHistoryPage = () => {
           <ActivityIndicator size="large" color="#F73658" />
         </View>
       ) : (
-        <FlatList
-          data={history}
+        <FlashList data={history}
           renderItem={renderItem}
           keyExtractor={(item, index) => `${item.productId}-${index}`}
           contentContainerStyle={styles.listContent}

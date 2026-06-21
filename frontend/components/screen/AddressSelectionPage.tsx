@@ -1,5 +1,6 @@
+import { FlashList } from '@shopify/flash-list';
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { userApi, UserAddressDTO } from '../../lib/userApi';
@@ -101,8 +102,7 @@ export default function AddressSelectionPage({ onBack, onSelectAddress, onAddNew
           <ActivityIndicator size="large" color="#F83758" />
         </View>
       ) : (
-        <FlatList
-          data={addresses}
+        <FlashList data={addresses}
           keyExtractor={(item) => item.id.toString()}
           renderItem={renderItem}
           contentContainerStyle={styles.listContent}

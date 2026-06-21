@@ -1,5 +1,6 @@
+import { FlashList } from '@shopify/flash-list';
 import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, RefreshControl, Platform, StatusBar } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, TouchableOpacity, RefreshControl, Platform, StatusBar } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ProductCard, { Product } from '../common/ProductCard';
@@ -94,8 +95,7 @@ const WishlistScreen = () => {
         <Text style={styles.headerTitle}>Danh sách yêu thích</Text>
       </View>
 
-      <FlatList
-        key={2}
+      <FlashList key={2}
         data={favorites}
         numColumns={2}
         keyExtractor={(item) => item.favoriteId.toString()}
@@ -109,7 +109,6 @@ const WishlistScreen = () => {
           />
         )}
         contentContainerStyle={favorites.length === 0 ? styles.flexGrow : styles.listContent}
-        columnWrapperStyle={favorites.length > 0 ? styles.columnWrapper : undefined}
         ListEmptyComponent={renderEmptyState}
         refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={['#F83758']} />}
       />

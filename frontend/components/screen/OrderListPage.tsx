@@ -1,5 +1,6 @@
+import { FlashList } from '@shopify/flash-list';
 import React from 'react';
-import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter, useLocalSearchParams } from 'expo-router';
@@ -121,8 +122,7 @@ const OrderListPage = () => {
       </View>
 
       <View style={styles.tabsContainer}>
-        <FlatList
-          horizontal
+        <FlashList horizontal
           showsHorizontalScrollIndicator={false}
           data={TABS}
           renderItem={({ item }) => (
@@ -144,8 +144,7 @@ const OrderListPage = () => {
           <ActivityIndicator size="large" color="#F73658" />
         </View>
       ) : (
-        <FlatList
-          data={filteredOrders}
+        <FlashList data={filteredOrders}
           renderItem={renderOrderItem}
           keyExtractor={(item) => item.id.toString()}
           contentContainerStyle={styles.listContent}

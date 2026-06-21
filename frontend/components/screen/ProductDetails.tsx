@@ -185,7 +185,12 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ productId = 1 }) => {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
         <ProductImageGallery 
-          images={product.thumbnails?.length > 0 ? product.thumbnails : (product.image ? [product.image] : [])} 
+          images={
+            [
+              ...(product.thumbnails?.length > 0 ? product.thumbnails : (product.image ? [product.image] : [])),
+              ...(product.variants?.map(v => v.imageUrl).filter((url): url is string => !!url) || [])
+            ].filter((v, i, a) => a.indexOf(v) === i)
+          } 
           activeIndex={activeImageIdx}
           onScroll={setActiveImageIdx}
           onImagePress={() => {}} 

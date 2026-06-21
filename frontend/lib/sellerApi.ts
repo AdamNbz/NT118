@@ -171,6 +171,8 @@ export interface ShopProfile {
   businessHours?: string;
   pickupAddress?: string;
   createdAt: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export interface UpdateShopProfilePayload {
@@ -183,6 +185,8 @@ export interface UpdateShopProfilePayload {
   email?: string;
   businessHours?: string;
   pickupAddress?: string;
+  latitude?: number | null;
+  longitude?: number | null;
 }
 
 export const sellerApi = {

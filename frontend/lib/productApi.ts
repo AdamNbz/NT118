@@ -65,6 +65,7 @@ export interface ProductListParams {
   minPrice?: number;
   maxPrice?: number;
   sort?: 'newest' | 'price_asc' | 'price_desc' | 'rating' | 'popular';
+  isFlashSale?: boolean;
 }
 
 /**
